@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "csv": "^6.3.10",
+    "csv-write-stream": "^2.0.0",
+    "csv-writer": "^1.6.0",
+    "fs": "^0.0.1-security",
+    "request": "^2.88.2",
+    "request-promise": "^4.2.6"
+  }
+}
