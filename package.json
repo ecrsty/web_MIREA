@@ -5,6 +5,7 @@
     "csv-write-stream": "^2.0.0",
     "csv-writer": "^1.6.0",
     "fs": "^0.0.1-security",
+    "puppeteer": "^23.5.0",
     "request": "^2.88.2",
     "request-promise": "^4.2.6"
   }
