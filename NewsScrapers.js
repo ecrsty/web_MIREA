@@ -6,10 +6,9 @@ const puppeteer = require('puppeteer');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const urls = [
-    "https://edition.cnn.com/2024/09/05/europe/munich-police-shoot-armed-suspect-intl",
+    "https://edition.cnn.com/2024/09/23/tech/social-media-ai-data-opt-out",
     "https://www.euronews.com/business/2024/09/06/uk-house-prices-hit-two-year-high-after-positive-summer-for-market",
     "https://www.foxbusiness.com/technology/man-charged-using-bots-stream-ai-generated-songs-10m-royalties",
-    "https://www.reuters.com/markets/us/new-us-etfs-being-launched-record-pace-2024-2024-08-22/",
     "https://metro.co.uk/2024/09/08/danger-life-warning-place-100mm-rain-forecast-uk-21565559/",
     "https://www.thesun.co.uk/news/30829932/teenage-girl-killed-motorway-crash-m65-burnley/"
 ]
@@ -20,12 +19,18 @@ async function scrapeCNN(url) {
 
     let data = {
         header: $("div.headline__wrapper").text().trim(),
-        author: $("div.byline__names").text().trim(),
-        publish_date: $("div.timestamp").text().trim(),
-        reading_time: $("div.headline__sub-description").text().trim(),
-        category: $("div.breadcrumb").text().trim(),
+        author: $("div.byline__names").text()
+                                        .substring(6)
+                                        .replace(/\s+and\s+/g, ', ')
+                                        .replace(/,\s*CNN$/, '')
+                                        .split(', ')
+                                        .map(name => name.trim()),
+        publish_date: $("div.timestamp").text().replace('Published', '').replace('Updated', '').trim(),
+        reading_time: $("div.headline__sub-description").text().replace('read', '').trim(),
+        category: $("div.breadcrumb").text().split('/').map(cat => cat.trim()),
         text: $("div.article__content-container p").map((i, el) => $(el).text().trim()).get().join(' '),
     };
+
     return data;
 }
 
@@ -39,8 +44,8 @@ async function scrapeEuronews(url) {
     // Извлечение данных
     let data = {
         header: doc.find("h1").text().trim(), // Исправляем: используем .find вместо doc()
-        author: doc.find("div.c-article-contributors").text().trim(),
-        publish_date: doc.find("time").text().trim(),
+        author: doc.find("div.c-article-contributors").text().trim().substring(3),
+        publish_date: doc.find("time").text().split(' - ').map(t => t.trim()),
         category: doc.find("#adb-article-breadcrumb a.active").text().trim(),
         summary: doc.find("p.c-article-summary").text().trim(),
         text: doc.find("div.c-article-content p").map((i, el) => $(el).text().trim()).get().join(' '),
@@ -61,6 +66,7 @@ async function scrapeFoxnews(url) {
         category: $("div.eyebrow").text().trim(),
         text: $("div.article-content p").map((i, el) => $(el).text().trim()).get().join(' '),
     };
+
     return data;
 }
 
@@ -73,10 +79,11 @@ async function scrapeMetro(url) {
         header: $("h1.post-title").text().trim(),
         author: $("span.author-container").text().trim(),
         publish_date: $('span.post-published').text().trim(),
-        modif_date: $('span.post-modified').text().trim(),
-        category: $('div.met-breadcrumb').text().trim(),
+        modif_date: $('span.post-modified').text().replace('|', ' ').trim(),
+        category: $('div.met-breadcrumb').text().split('›').map(cat => cat.trim()),
         text: $('div.article-body p').map((i, el) => $(el).text().trim()).get().join(' '),
     }
+
     return data;
 }
 
@@ -88,11 +95,13 @@ async function scrapeSun(url) {
         header: $("h1").text().trim(),
         subheader: $("div.article__subdeck").text().trim(),
         author: $("div.article__author").text().trim(),
-        publish_date: $("li.article__published").text().trim(),
-        update: $("li.article__updated").text().trim(),
-        category: $("ul.breadcrumbs").text().trim(),
+        publish_date: $("li.article__published").text().trim().replace('Published: ', ''),
+        update: $("li.article__updated").text().trim().replace('Updated: ', ''),
+        // category: $("ul.breadcrumbs").text().trim(),
+        category: $('ul.breadcrumbs li a').map((i, el) => $(el).text().trim()).get(),
         text: $('div.article__content p').map((i, el) => $(el).text().trim()).get().join(' '),
     };
+
     return data;
 }
 
@@ -130,4 +139,4 @@ async function scrapeWebsite(url, site) {
     }
   }
 
-scrapeWebsite(urls[5], "sun")
+scrapeWebsite(urls[0], "cnn")
