@@ -10,7 +10,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const urls = [
     "https://edition.cnn.com/2024/09/23/tech/social-media-ai-data-opt-out",
     "https://www.euronews.com/business/2024/09/06/uk-house-prices-hit-two-year-high-after-positive-summer-for-market",
-    "https://www.foxbusiness.com/technology/man-charged-using-bots-stream-ai-generated-songs-10m-royalties",
+    "https://www.foxnews.com/lifestyle/creative-couples-halloween-costumes",
     "https://metro.co.uk/2024/09/08/danger-life-warning-place-100mm-rain-forecast-uk-21565559/",
     "https://www.thesun.co.uk/news/30829932/teenage-girl-killed-motorway-crash-m65-burnley/"
 ]
@@ -113,9 +113,11 @@ async function scrapeFoxnews(url) {
     let data = {
         header: $("h1.headline").text().trim(),
         subheader: $("h2.sub-headline").text().trim(),
-        author: $("span.author").text().trim(),
+        author: $("div.author-byline span span").text()
+                                        .replace(/By\n\s*/, '')
+                                        .trim(),
         publish_date: $("time").text().trim(),
-        category: $("div.eyebrow").text().trim(),
+        category: $("span.eyebrow").text().trim(),
         text: $("div.article-content p").map((i, el) => $(el).text().trim()).get().join(' '),
     };
 
@@ -129,8 +131,8 @@ async function scrapeMetro(url) {
     let data = {
         header: $("h1.post-title").text().trim(),
         author: $("span.author-container").text().trim(),
-        publish_date: $('span.post-published').text().trim(),
-        modif_date: $('span.post-modified').text().replace('|', ' ').trim(),
+        publish_date: $('span.post-published').text().trim().replace('Published', '').trim(),
+        modif_date: $('span.post-modified').text().replace('|', ' ').replace('Updated', '').trim(),
         category: $('div.met-breadcrumb').text().split('›').map(cat => cat.trim()),
         text: $('div.article-body p').map((i, el) => $(el).text().trim()).get().join(' '),
     }
@@ -204,6 +206,7 @@ const test_data = {
     text: "With a yellow weather warning covering two-thirds of England and Wales in place, you can probably guess the weather won’t be great today. The warning for heavy and thundery rain started yesterday at 9pm and will end at 8pm today. While forecasters admit the outlook for today remains uncertain, they expect it to bucket it down in western England and southern Wales especially. Slow-moving showers and thunderstorms, meanwhile, will crawl across the east. How much rain you will see will vary wildly. Some might see only 10mm or so, while others in areas under the yellow weather warning might see up to 60mm. ‘There is a lower chance that a few spots within the warning area could see 80-100 mm of rain by the end of Sunday which may fall in a fairly small period of time,’ the warning says. ‘These higher totals are slightly more probable in the southern half of the warning area. ‘Given this region has also seen a lot of rain since Thursday, impacts may be more likely than would normally be expected for the time of year here.’ Weather officials issue a yellow weather warning when the weather is ‘likely’ to cause some upheaval. Power outages are possible today, as is flooding that could damage buildings, delay public transport and cut communities off due to flooded roads. Spray and flooding may make driving tricky. To get the latest news from the capital visit Metro.co.uk's London news hub. ‘There is a small chance of fast flowing or deep floodwater causing danger to life,’ the alert adds. Met Office Chief Meteorologist Matthew Lehnert said: ‘It’s a different story further north though, as high pressure brings warmer and sunnier conditions, with higher-than-average temperatures, particularly across parts of western Scotland. Major discount store with more than 800 shops nationwide to close branch Teenager compared to a 'burnt chip' urges younger generations not to use sunbeds London Underground 'ghost ride' that sees trains stop at the same station twice Protesters clash with police cordon after thousands march through central London ‘Eastern areas are likely to be cooler and at times, cloudier due to winds blowing off the North Sea.’ After several days of non-stop yellow weather warnings, however, next week doesn’t look so bad. None are currently in place for a start. But forecasters say things will remain ‘unsettled’ and even a tad cold on Tuesday as the wind direction changes. The north will be feeling the cold especially with showers or long spells of rain and blustery wind expected for most of the UK. Get in touch with our news team by emailing us at webnews@metro.co.uk. For more stories like this, check our news page. MORE : This is officially the unhappiest place to live in the UK MORE : 721 children treated by ‘rogue surgeon’ at Great Ormond Street MORE : Plane crashes into east London field with man in hospital Privacy Policy",
   }
 
+// scrapeWebsite(sources.metro[1], "metro")  
 // scrapeWebsite(urls[3], "metro")
 // scrapeWebsite(urls[4], "thesun")
 
@@ -254,24 +257,25 @@ async function testDelayFunction() {
 }
 
 // Запуск тестовой функции
-testDelayFunction();
+// testDelayFunction();
 
 
-// async function scrapeAllWebsites() {
-//     for (const [site, links] of Object.entries(sources)) {
-//         console.log(`\n\n=== Парсинг ссылок для сайта: ${site} ===`);
-//         let save_path = `./${site}.csv`;
+async function scrapeAllWebsites() {
+    for (const [site, links] of Object.entries(sources)) {
+        console.log(`\n\n=== Парсинг ссылок для сайта: ${site} ===`);
+        let save_path = `./${site}.csv`;
 
-//         for (const url of links) {
-//             console.log(`\nПарсим ссылку: ${url}`);
-//             let data = await scrapeWebsite(url, site); // Парсим данные с текущей ссылки
-//             await delay(20000); // Задержка 10 секунд между запросами
-//         }
+        for (const url of links) {
+            console.log(`\nПарсим ссылку: ${url}`);
+            let data = await scrapeWebsite(url, site); // Парсим данные с текущей ссылки
+            await writeToCSV(data, save_path)
+            await delay(17500); // Задержка 15 секунд между запросами
+        }
 
-//         console.log(`\nЗавершен парсинг ссылок для сайта: ${site}\n\n`);
-//     }
-// }
+        console.log(`\nЗавершен парсинг ссылок для сайта: ${site}\n\n`);
+    }
+}
 
-// // Запуск функции парсинга всех сайтов
-// scrapeAllWebsites();
+// Запуск функции парсинга всех сайтов
+scrapeAllWebsites();
 
