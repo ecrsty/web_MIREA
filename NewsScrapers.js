@@ -260,7 +260,7 @@ async function testDelayFunction() {
 // testDelayFunction();
 
 
-async function scrapeAllWebsites() {
+async function scrapeAllWebsites(sources) {
     for (const [site, links] of Object.entries(sources)) {
         console.log(`\n\n=== Парсинг ссылок для сайта: ${site} ===`);
         let save_path = `./${site}.csv`;
@@ -269,7 +269,7 @@ async function scrapeAllWebsites() {
             console.log(`\nПарсим ссылку: ${url}`);
             let data = await scrapeWebsite(url, site); // Парсим данные с текущей ссылки
             await writeToCSV(data, save_path)
-            await delay(17500); // Задержка 15 секунд между запросами
+            await delay(17500); // Задержка 17.5 секунд между запросами
         }
 
         console.log(`\nЗавершен парсинг ссылок для сайта: ${site}\n\n`);
@@ -277,5 +277,8 @@ async function scrapeAllWebsites() {
 }
 
 // Запуск функции парсинга всех сайтов
-scrapeAllWebsites();
+// scrapeAllWebsites();
 
+module.exports = {
+    scrapeAllWebsites
+}
