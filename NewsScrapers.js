@@ -66,18 +66,9 @@ const sources = {
     ]
 }
 
-function normalizeDate(dateString, oldFormat, newFormat) {
-    parsedDate = parse(dateString, oldFormat, new Date());
-    return format(parsedDate, newFormat)
-}
-
-
-async function scrapeCNN(url, newDateFormat) {
+async function scrapeCNN(url) {
     let html = await request(url);
     let $ = cheerio.load(html);
-
-    let dateFormat = "h:mm a zzz, EEEE MMMM d, yyyy";
-    let rawPublishDate = $("div.timestamp").text().replace('Published', '').replace('Updated', '').trim();
 
     let data = {
         link: url,
@@ -88,7 +79,7 @@ async function scrapeCNN(url, newDateFormat) {
                                         .replace(/,\s*CNN$/, '')
                                         .split(', ')
                                         .map(name => name.trim()),
-        publish_date: normalizeDate(rawPublishDate, dateFormat, newDateFormat),
+        publish_date: $("div.timestamp").text().replace('Published', '').replace('Updated', '').trim(),
         reading_time: $("div.headline__sub-description").text().replace('read', '').trim(),
         category: $("div.breadcrumb").text().split('/').map(cat => cat.trim()),
         text: $("div.article__content-container p").map((i, el) => $(el).text().trim()).get().join(' '),
@@ -104,18 +95,15 @@ async function scrapeEuronews(url) {
     // Проверка, существует ли блок swiper-slide-active
     let doc = $("div.swiper-slide-active").length ? $("div.swiper-slide-active") : $("body");
 
-    rawPublishDate =doc.find("div.c-article-publication-date time").first().attr('datetime');
-    rawUpdatehDate = doc.find("div.c-article-publication-date time").length > 1 
-        ? doc.find("div.c-article-publication-date time").last().attr('datetime') 
-        : ''; // Пустое поле, если нет даты обновления
-
     // Извлечение данных
     let data = {
         link: url,
         header: doc.find("h1").text().trim(),
         author: doc.find("div.c-article-contributors").text().trim().replace(/^By\s*/, ''),
-        publish_date: normalizeDate(rawPublishDate, dateFormat, newDateFormat),
-        update_date: rawUpdatehDate ? normalizeDate(rawUpdatehDate, dateFormat, newDateFormat) : '',
+        publish_date: doc.find("div.c-article-publication-date time").first().attr('datetime'),
+        update_date: doc.find("div.c-article-publication-date time").length > 1 
+        ? doc.find("div.c-article-publication-date time").last().attr('datetime') 
+        : '', // Пустое поле, если нет даты обновления
         category: doc.find("#adb-article-breadcrumb a.active").text().trim(),
         summary: doc.find("p.c-article-summary").text().trim(),
         text: doc.find("div.c-article-content p").map((i, el) => $(el).text().trim()).get().join(' '),
@@ -135,7 +123,7 @@ async function scrapeFoxnews(url) {
         author: $("div.author-byline span span").text()
                                         .replace(/By\n\s*/, '')
                                         .trim(),
-        publish_date: $("time").text().trim(),
+        publish_date: $("time").text().split('EDT')[0].trim(),
         category: $("span.eyebrow").text().trim(),
         text: $("div.article-content p").map((i, el) => $(el).text().trim()).get().join(' '),
     };
@@ -180,6 +168,10 @@ async function scrapeSun(url) {
     return data;
 }
 
+// function normalizeDate(stringdate, normalizeFormat) {
+//     return format()
+// }
+
 
 async function scrapeWebsite(url, site) {
     try {  
@@ -191,15 +183,12 @@ async function scrapeWebsite(url, site) {
                 break;
             case "euronews":
                 fScrape = scrapeEuronews;
-                parsedDate = parse(dateString, "yyyy-MM-dd HH:mm xxx", new Date());
                 break;
             case "foxnews":
                 fScrape = scrapeFoxnews;
-                parsedDate = parse(dateString, "MMMM d, yyyy h:mma zzz", new Date());
                 break;
             case "metro":
                 fScrape = scrapeMetro;
-                parsedDate = parse(dateString, "MMM d, yyyy, h:mma", new Date());
                 break;
             case "thesun":
                 fScrape = scrapeSun;
@@ -210,8 +199,8 @@ async function scrapeWebsite(url, site) {
                 return null;
         }
 
-        data = await fScrape(url, "yyyy-MM-dd HH:mm:ss");
-        console.log(data);
+        data = await fScrape(url);
+        // console.log(data);
         return data;
   
     } catch (error) {
@@ -328,6 +317,58 @@ async function scrapeAllWebsites(sources, n = 50) {
 
 // Запуск функции парсинга всех сайтов
 // scrapeAllWebsites();
+
+
+function normalizeDate(dateString, source) {
+    let parsedDate;
+
+    try {
+        switch (source.toLowerCase()) {
+            case 'cnn':
+                let [timePart, datePart, yearPart] = dateString.split(',').map(str => str.trim());
+                // Разделим время по пробелам, чтобы получить время
+                let [time, amPm] = timePart.split(' ').slice(0, 2);
+                let timeWithoutTZ = `${time} ${amPm}`;
+                // Убираем день недели из даты
+                let dateWithoutDay = datePart.split(' ').slice(1).join(' ');
+
+                // Объединяем строку для парсинга
+                const combinedDateString = `${dateWithoutDay} ${yearPart} ${timeWithoutTZ}`;
+
+                parsedDate = parse(combinedDateString, "MMMM d yyyy h:mm a", new Date());
+                break;
+            case 'euronews':
+                parsedDate = parse(dateString, "yyyy-MM-dd HH:mm xxx", new Date());
+                break;
+            case 'foxnews':
+                // Удаляем текстовый часовой пояс
+                dateString = dateString.replace(/\s[A-Z]{2,4}$/, '');
+                parsedDate = parse(dateString, "MMMM d, yyyy h:mma", new Date());
+                break;
+            case 'metro':
+                parsedDate = parse(dateString, "MMM d, yyyy, h:mma", new Date());
+                break;
+            case 'thesun':
+                parsedDate = parseISO(dateString); // ISO 8601 формат
+                break;
+            default:
+                throw new Error("Неизвестный источник");
+        }
+
+        return format(parsedDate, "yyyy-MM-dd HH:mm:ss");
+    } catch (error) {
+        console.error(`Ошибка при обработке даты: ${dateString} из источника ${source}`, error);
+        return null;
+    }
+}
+
+// Примеры использования
+console.log(normalizeDate("6:19 AM EDT, Fri October 25, 2024", "cnn"));       // 2024-10-25 06:19:00
+console.log(normalizeDate("2024-10-25 12:58 +02:00", "euronews"));           // 2024-10-25 12:58:00
+console.log(normalizeDate("October 31, 2024 5:48am EDT", "foxnews"));        // 2024-10-31 05:48:00
+console.log(normalizeDate("Oct 26, 2024, 4:14pm", "metro"));                 // 2024-10-26 16:14:00
+console.log(normalizeDate("2024-10-26T13:51:21.000+00:00", "thesun")); 
+
 
 module.exports = {
     scrapeAllWebsites
