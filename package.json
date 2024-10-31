@@ -6,6 +6,7 @@
     "csv-parser": "^3.0.0",
     "csv-write-stream": "^2.0.0",
     "csv-writer": "^1.6.0",
+    "date-fns": "^4.1.0",
     "fs": "^0.0.1-security",
     "puppeteer": "^23.5.0",
     "request": "^2.88.2",

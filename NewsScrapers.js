@@ -2,6 +2,7 @@ const request = require('request-promise');
 const cheerio = require('cheerio');
 const fs = require('fs')
 const { createObjectCsvWriter } = require('csv-writer'); // забираем только нужный метод из модуля
+const { parse, parseISO, format } = require('date-fns');
 
 
 // Функция для задержки между запросами
@@ -65,11 +66,21 @@ const sources = {
     ]
 }
 
-async function scrapeCNN(url) {
+function normalizeDate(dateString, oldFormat, newFormat) {
+    parsedDate = parse(dateString, oldFormat, new Date());
+    return format(parsedDate, newFormat)
+}
+
+
+async function scrapeCNN(url, newDateFormat) {
     let html = await request(url);
     let $ = cheerio.load(html);
 
+    let dateFormat = "h:mm a zzz, EEEE MMMM d, yyyy";
+    let rawPublishDate = $("div.timestamp").text().replace('Published', '').replace('Updated', '').trim();
+
     let data = {
+        link: url,
         header: $("div.headline__wrapper").text().trim(),
         author: $("div.byline__names").text()
                                         .substring(6)
@@ -77,7 +88,7 @@ async function scrapeCNN(url) {
                                         .replace(/,\s*CNN$/, '')
                                         .split(', ')
                                         .map(name => name.trim()),
-        publish_date: $("div.timestamp").text().replace('Published', '').replace('Updated', '').trim(),
+        publish_date: normalizeDate(rawPublishDate, dateFormat, newDateFormat),
         reading_time: $("div.headline__sub-description").text().replace('read', '').trim(),
         category: $("div.breadcrumb").text().split('/').map(cat => cat.trim()),
         text: $("div.article__content-container p").map((i, el) => $(el).text().trim()).get().join(' '),
@@ -90,14 +101,21 @@ async function scrapeEuronews(url) {
     let html = await request(url);
     let $ = cheerio.load(html);
 
-    // Выбор активного документа
-    let doc = $("div.swiper-slide-active"); // Это уже объект Cheerio
+    // Проверка, существует ли блок swiper-slide-active
+    let doc = $("div.swiper-slide-active").length ? $("div.swiper-slide-active") : $("body");
+
+    rawPublishDate =doc.find("div.c-article-publication-date time").first().attr('datetime');
+    rawUpdatehDate = doc.find("div.c-article-publication-date time").length > 1 
+        ? doc.find("div.c-article-publication-date time").last().attr('datetime') 
+        : ''; // Пустое поле, если нет даты обновления
 
     // Извлечение данных
     let data = {
-        header: doc.find("h1").text().trim(), // Исправляем: используем .find вместо doc()
-        author: doc.find("div.c-article-contributors").text().trim().substring(3),
-        publish_date: doc.find("time").text().split(' - ').map(t => t.trim()),
+        link: url,
+        header: doc.find("h1").text().trim(),
+        author: doc.find("div.c-article-contributors").text().trim().replace(/^By\s*/, ''),
+        publish_date: normalizeDate(rawPublishDate, dateFormat, newDateFormat),
+        update_date: rawUpdatehDate ? normalizeDate(rawUpdatehDate, dateFormat, newDateFormat) : '',
         category: doc.find("#adb-article-breadcrumb a.active").text().trim(),
         summary: doc.find("p.c-article-summary").text().trim(),
         text: doc.find("div.c-article-content p").map((i, el) => $(el).text().trim()).get().join(' '),
@@ -111,6 +129,7 @@ async function scrapeFoxnews(url) {
     let $ = cheerio.load(html);
 
     let data = {
+        link: url,
         header: $("h1.headline").text().trim(),
         subheader: $("h2.sub-headline").text().trim(),
         author: $("div.author-byline span span").text()
@@ -129,6 +148,7 @@ async function scrapeMetro(url) {
     let $ = cheerio.load(html);
 
     let data = {
+        link: url,
         header: $("h1.post-title").text().trim(),
         author: $("span.author-container").text().trim(),
         publish_date: $('span.post-published').text().trim().replace('Published', '').trim(),
@@ -136,7 +156,7 @@ async function scrapeMetro(url) {
         category: $('div.met-breadcrumb').text().split('›').map(cat => cat.trim()),
         text: $('div.article-body p').map((i, el) => $(el).text().trim()).get().join(' '),
     }
-
+    console.log(data);
     return data;
 }
 
@@ -145,16 +165,18 @@ async function scrapeSun(url) {
     let $ = cheerio.load(html);
 
     let data = {
+        link: url,
         header: $("h1").text().trim(),
         subheader: $("div.article__subdeck").text().trim(),
         author: $("div.article__author").text().trim(),
-        publish_date: $("li.article__published").text().trim().replace('Published: ', ''),
-        update: $("li.article__updated").text().trim().replace('Updated: ', ''),
-        // category: $("ul.breadcrumbs").text().trim(),
+        // publish_date: $("li.article__published").text().trim().replace('Published: ', ''),
+        // update: $("li.article__updated").text().trim().replace('Updated: ', ''),
+        publish_date: $("li.article__published").find('time').attr('datetime'),
+        update: $("li.article__updated").find('time').attr('datetime'),
         category: $('ul.breadcrumbs li a').map((i, el) => $(el).text().trim()).get(),
         text: $('div.article__content p').map((i, el) => $(el).text().trim()).get().join(' '),
     };
-
+    
     return data;
 }
 
@@ -169,23 +191,27 @@ async function scrapeWebsite(url, site) {
                 break;
             case "euronews":
                 fScrape = scrapeEuronews;
+                parsedDate = parse(dateString, "yyyy-MM-dd HH:mm xxx", new Date());
                 break;
             case "foxnews":
                 fScrape = scrapeFoxnews;
+                parsedDate = parse(dateString, "MMMM d, yyyy h:mma zzz", new Date());
                 break;
             case "metro":
                 fScrape = scrapeMetro;
+                parsedDate = parse(dateString, "MMM d, yyyy, h:mma", new Date());
                 break;
             case "thesun":
                 fScrape = scrapeSun;
+                parsedDate = parseISO(dateString); // ISO 8601 формат, можно использовать parseISO напрямую
                 break;
             default: 
                 console.log("Веб-сайт не определен");
                 return null;
         }
 
-        data = await fScrape(url, site);
-        // console.log(data);
+        data = await fScrape(url, "yyyy-MM-dd HH:mm:ss");
+        console.log(data);
         return data;
   
     } catch (error) {
@@ -193,18 +219,18 @@ async function scrapeWebsite(url, site) {
     }
   }
 
-const test_data = {
-    header: "‘Danger to life’ weather warning in place today with 100mm of rain forecast in UK",
-    author: "Josh Milton",
-    publish_date: "Published Sep 8, 2024, 5:45am",
-    modif_date: "Updated Sep 8, 2024, 3:13pm",
-    category: [
-      "Home",
-      "News",
-      "UK",
-    ],
-    text: "With a yellow weather warning covering two-thirds of England and Wales in place, you can probably guess the weather won’t be great today. The warning for heavy and thundery rain started yesterday at 9pm and will end at 8pm today. While forecasters admit the outlook for today remains uncertain, they expect it to bucket it down in western England and southern Wales especially. Slow-moving showers and thunderstorms, meanwhile, will crawl across the east. How much rain you will see will vary wildly. Some might see only 10mm or so, while others in areas under the yellow weather warning might see up to 60mm. ‘There is a lower chance that a few spots within the warning area could see 80-100 mm of rain by the end of Sunday which may fall in a fairly small period of time,’ the warning says. ‘These higher totals are slightly more probable in the southern half of the warning area. ‘Given this region has also seen a lot of rain since Thursday, impacts may be more likely than would normally be expected for the time of year here.’ Weather officials issue a yellow weather warning when the weather is ‘likely’ to cause some upheaval. Power outages are possible today, as is flooding that could damage buildings, delay public transport and cut communities off due to flooded roads. Spray and flooding may make driving tricky. To get the latest news from the capital visit Metro.co.uk's London news hub. ‘There is a small chance of fast flowing or deep floodwater causing danger to life,’ the alert adds. Met Office Chief Meteorologist Matthew Lehnert said: ‘It’s a different story further north though, as high pressure brings warmer and sunnier conditions, with higher-than-average temperatures, particularly across parts of western Scotland. Major discount store with more than 800 shops nationwide to close branch Teenager compared to a 'burnt chip' urges younger generations not to use sunbeds London Underground 'ghost ride' that sees trains stop at the same station twice Protesters clash with police cordon after thousands march through central London ‘Eastern areas are likely to be cooler and at times, cloudier due to winds blowing off the North Sea.’ After several days of non-stop yellow weather warnings, however, next week doesn’t look so bad. None are currently in place for a start. But forecasters say things will remain ‘unsettled’ and even a tad cold on Tuesday as the wind direction changes. The north will be feeling the cold especially with showers or long spells of rain and blustery wind expected for most of the UK. Get in touch with our news team by emailing us at webnews@metro.co.uk. For more stories like this, check our news page. MORE : This is officially the unhappiest place to live in the UK MORE : 721 children treated by ‘rogue surgeon’ at Great Ormond Street MORE : Plane crashes into east London field with man in hospital Privacy Policy",
-  }
+// const test_data = {
+//     header: "‘Danger to life’ weather warning in place today with 100mm of rain forecast in UK",
+//     author: "Josh Milton",
+//     publish_date: "Published Sep 8, 2024, 5:45am",
+//     modif_date: "Updated Sep 8, 2024, 3:13pm",
+//     category: [
+//       "Home",
+//       "News",
+//       "UK",
+//     ],
+//     text: "With a yellow weather warning covering two-thirds of England and Wales in place, you can probably guess the weather won’t be great today. The warning for heavy and thundery rain started yesterday at 9pm and will end at 8pm today. While forecasters admit the outlook for today remains uncertain, they expect it to bucket it down in western England and southern Wales especially. Slow-moving showers and thunderstorms, meanwhile, will crawl across the east. How much rain you will see will vary wildly. Some might see only 10mm or so, while others in areas under the yellow weather warning might see up to 60mm. ‘There is a lower chance that a few spots within the warning area could see 80-100 mm of rain by the end of Sunday which may fall in a fairly small period of time,’ the warning says. ‘These higher totals are slightly more probable in the southern half of the warning area. ‘Given this region has also seen a lot of rain since Thursday, impacts may be more likely than would normally be expected for the time of year here.’ Weather officials issue a yellow weather warning when the weather is ‘likely’ to cause some upheaval. Power outages are possible today, as is flooding that could damage buildings, delay public transport and cut communities off due to flooded roads. Spray and flooding may make driving tricky. To get the latest news from the capital visit Metro.co.uk's London news hub. ‘There is a small chance of fast flowing or deep floodwater causing danger to life,’ the alert adds. Met Office Chief Meteorologist Matthew Lehnert said: ‘It’s a different story further north though, as high pressure brings warmer and sunnier conditions, with higher-than-average temperatures, particularly across parts of western Scotland. Major discount store with more than 800 shops nationwide to close branch Teenager compared to a 'burnt chip' urges younger generations not to use sunbeds London Underground 'ghost ride' that sees trains stop at the same station twice Protesters clash with police cordon after thousands march through central London ‘Eastern areas are likely to be cooler and at times, cloudier due to winds blowing off the North Sea.’ After several days of non-stop yellow weather warnings, however, next week doesn’t look so bad. None are currently in place for a start. But forecasters say things will remain ‘unsettled’ and even a tad cold on Tuesday as the wind direction changes. The north will be feeling the cold especially with showers or long spells of rain and blustery wind expected for most of the UK. Get in touch with our news team by emailing us at webnews@metro.co.uk. For more stories like this, check our news page. MORE : This is officially the unhappiest place to live in the UK MORE : 721 children treated by ‘rogue surgeon’ at Great Ormond Street MORE : Plane crashes into east London field with man in hospital Privacy Policy",
+//   }
 
 // scrapeWebsite(sources.metro[1], "metro")  
 // scrapeWebsite(urls[3], "metro")
@@ -260,21 +286,45 @@ async function testDelayFunction() {
 // testDelayFunction();
 
 
-async function scrapeAllWebsites(sources) {
-    for (const [site, links] of Object.entries(sources)) {
-        console.log(`\n\n=== Парсинг ссылок для сайта: ${site} ===`);
+// async function scrapeAllWebsites(sources) {
+//     for (const [site, links] of Object.entries(sources)) {
+//         console.log(`\n\n=== Парсинг ссылок для сайта: ${site} ===`);
+//         let save_path = `./${site}.csv`;
+
+//         for (const url of links) {
+//             console.log(`\nПарсим ссылку: ${url}`);
+//             let data = await scrapeWebsite(url, site); // Парсим данные с текущей ссылки
+//             await writeToCSV(data, save_path)
+//             await delay(17500); // Задержка 17.5 секунд между запросами
+//         }
+
+//         console.log(`\nЗавершен парсинг ссылок для сайта: ${site}\n\n`);
+//     }
+// }
+
+
+async function scrapeAllWebsites(sources, n = 50) {
+    // Создаем массив промисов для каждого сайта
+    const sitePromises = Object.entries(sources).map(async ([site, links]) => {
+        console.log(`\n\n=== Начинаем парсинг первых ${n} ссылок для сайта: ${site} ===`);
         let save_path = `./${site}.csv`;
 
-        for (const url of links) {
+        // Ограничиваем количество ссылок до n и запускаем последовательную обработку с задержкой
+        for (const url of links.slice(0, n)) {
             console.log(`\nПарсим ссылку: ${url}`);
-            let data = await scrapeWebsite(url, site); // Парсим данные с текущей ссылки
-            await writeToCSV(data, save_path)
-            await delay(17500); // Задержка 17.5 секунд между запросами
+            let data = await scrapeWebsite(url, site);
+            await writeToCSV(data, save_path);
+            await delay(20000); // Задержка 18 секунд между запросами для одного сайта
         }
 
         console.log(`\nЗавершен парсинг ссылок для сайта: ${site}\n\n`);
-    }
+    });
+
+    // Запускаем парсинг для всех сайтов одновременно
+    await Promise.all(sitePromises);
+    console.log("\n=== Парсинг завершен для всех сайтов ===");
 }
+
 
 // Запуск функции парсинга всех сайтов
 // scrapeAllWebsites();

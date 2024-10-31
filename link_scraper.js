@@ -2,12 +2,6 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const {scrapeAllWebsites} = require('./NewsScrapers')
 
-let url1 = 'https://edition.cnn.com/';
-let url2 = 'https://www.foxnews.com/';
-let url3 = 'https://www.euronews.com/';
-let url4 = 'https://metro.co.uk/';
-let url5 = 'https://www.thesun.co.uk/';
-
 async function getCNNLinks(url) {
     try {
         // Загружаем HTML страницы
@@ -22,7 +16,7 @@ async function getCNNLinks(url) {
         const links = [];
         newsBlock.find('a').each((index, element) => {
             const link = $(element).attr('href');
-            if (link) {
+            if (link && !link.includes('/live-news/') && !link.includes('/video/') && !link.includes('/videos/')) {
                 // Приводим относительные ссылки к абсолютному виду, если нужно
                 const absoluteLink = link.startsWith('http') ? link : `https://edition.cnn.com${link}`;
                 links.push(absoluteLink);
@@ -34,7 +28,7 @@ async function getCNNLinks(url) {
 
         return uniqueLinks;
     } catch (error) {
-        console.error('Error fetching or parsing page:', error);
+        console.error('Ошибка при получении ссылок:', error);
         return [];
     }
 }    
@@ -52,7 +46,7 @@ async function getEuroLinks(url) {
         $('#enw-main-content').find('a.m-object__title__link').each((index, element) => {
             let link = $(element).attr('href');
 
-            if (link) {
+            if (link && !link.includes('/video/')) {
                 // Преобразуем относительные ссылки в абсолютные
                 link = link.startsWith('/') ? `https://www.euronews.com${link}` : link;
 
@@ -96,7 +90,7 @@ async function getFoxLinks(url) {
                 let link = $(element).attr('href');
 
                 // Проверяем, чтобы ссылка была не на категорию
-                if (link && !link.includes('/category/') && !link.includes('//www.outkick.com')) {
+                if (link && !link.includes('/category/') && !link.includes('//www.outkick.com') && !link.includes('/video/')) {
                     // Преобразуем относительные ссылки в абсолютные
                     if (link.startsWith('/')) {
                         link = `https:${link}`;
@@ -190,54 +184,95 @@ async function getSunLinks(url) {
             }
         });
 
-        return links;
+        // Убираем дубликаты
+        const uniqueLinks = [...new Set(links)];
+
+        return uniqueLinks;
     } catch (error) {
         console.error('Ошибка при получении ссылок:', error);
         return [];
     }
 }
 
-async function getSources(url, site) {
-    try {
-        let fGetLinks;
-        let 
-        switch (site.toLowerCase()) {
-            case "cnn":
-                fGetLinks = getCNNLinks;
-                break;
-            case "euronews":
-                fGetLinks = getEuroLinks;
-                break;
-            case "foxnews":
-                fGetLinks = getFoxLinks;
-                break;
-            case "metro":
-                fGetLinks = getMetroLinks;
-                break;
-            case "thesun":
-                fGetLinks = getSunLinks;
-                break;
-            default: 
-                console.log("Веб-сайт не определен");
-                return null;
-        }
-    }
-    catch (error) {
-        console.error(`Ошибка при парсинге ${url}:`, error.message);
-      }
-}
+// let url1 = 'https://edition.cnn.com/';
+// let url2 = 'https://www.foxnews.com/';
+// let url3 = 'https://www.euronews.com/';
+// let url4 = 'https://metro.co.uk/';
+// let url5 = 'https://www.thesun.co.uk/';
+
+// async function getSources(site) {
+//     try {
+//         let fGetLinks;
+//         let url;
+//         switch (site.toLowerCase()) {
+//             case "cnn":
+//                 url = 'https://edition.cnn.com/';
+//                 fGetLinks = getCNNLinks;
+//                 break;
+//             case "euronews":
+//                 url = 'https://www.euronews.com/';
+//                 fGetLinks = getEuroLinks;
+//                 break;
+//             case "foxnews":
+//                 url = 'https://www.foxnews.com/';
+//                 fGetLinks = getFoxLinks;
+//                 break;
+//             case "metro":
+//                 url = 'https://metro.co.uk/';
+//                 fGetLinks = getMetroLinks;
+//                 break;
+//             case "thesun":
+//                 url = 'https://www.thesun.co.uk/';
+//                 fGetLinks = getSunLinks;
+//                 break;
+//             default: 
+//                 console.log("Веб-сайт не определен");
+//                 return null;
+//         }
+        
+//         let links = await fGetLinks(url)
+//         console.log(`\nЗавершен парсинг ссылок для сайта: ${site}\n\n`);
+//         return links;
+//     }
+//     catch (error) {
+//         console.error(`Ошибка при парсинге ${url}:`, error.message);
+//       }
+// }
 
 // getCNNLinks(url1).then((links) => console.log(links));
 // getFoxLinks(url2).then((links) => console.log(links));
 // getEuroLinks(url3).then((links) => console.log(links));
 // getMetroLinks(url4).then((links) => console.log(links));
-getSunLinks(url5).then((links) => console.log(links));
+// getSunLinks(url5).then((links) => console.log(links));
 
 
-// getCNNLinks(url).then((cnn_links) => {
-//     const sources = {
-//         'cnn': cnn_links
-//     };
-    
-//     scrapeAllWebsites(sources);
-// });
+async function getSources() {
+    const sites = [
+        { name: 'cnn', url: 'https://edition.cnn.com/', fetchLinks: getCNNLinks },
+        { name: 'euronews', url: 'https://www.euronews.com/', fetchLinks: getEuroLinks },
+        { name: 'foxnews', url: 'https://www.foxnews.com/', fetchLinks: getFoxLinks },
+        { name: 'metro', url: 'https://metro.co.uk/', fetchLinks: getMetroLinks },
+        { name: 'thesun', url: 'https://www.thesun.co.uk/', fetchLinks: getSunLinks }
+    ];
+
+    try {
+        // Запускаем все асинхронные запросы для получения ссылок
+        const results = await Promise.all(sites.map(async ({ name, url, fetchLinks }) => {
+            const links = await fetchLinks(url);
+            return [name, links]; // Возвращаем массив [название сайта, массив ссылок]
+        }));
+
+        // Преобразуем массив результатов в объект
+        const sources = Object.fromEntries(results);
+        console.log("\n=== Все ссылки собраны ===");
+        return sources;
+    } catch (error) {
+        console.error("Ошибка при сборе ссылок:", error);
+        return {};
+    }
+}
+
+// Вызов функции для передачи в scrapeAllWebsites
+getSources().then(sources => {
+    scrapeAllWebsites(sources); // Запуск scrapeAllWebsites с собранными ссылками
+});
