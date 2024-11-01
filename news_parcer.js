@@ -56,25 +56,25 @@ function getWordStats(filePath) {
     });
 }
 
-// // не работает
-// function getDateRange(filePath) {
-//     return new Promise((resolve, reject) => {
-//         let dates = [];
 
-//         fs.createReadStream(filePath)
-//             .pipe(csv())
-//             .on('data', (row) => {
-//                 let date = new Date(row.publish_date);
-//                 if (!isNaN(date)) dates.push(date);
-//             })
-//             .on('end', () => {
-//                 const minDate = new Date(Math.min(...dates));
-//                 const maxDate = new Date(Math.max(...dates));
-//                 resolve({ minDate, maxDate });
-//             })
-//             .on('error', reject);
-//     });
-// }
+function getDateRange(filePath) {
+    return new Promise((resolve, reject) => {
+        let dates = [];
+
+        fs.createReadStream(filePath)
+            .pipe(csv())
+            .on('data', (row) => {
+                let date = new Date(row.publish_date);
+                if (!isNaN(date)) dates.push(date);
+            })
+            .on('end', () => {
+                const minDate = new Date(Math.min(...dates));
+                const maxDate = new Date(Math.max(...dates));
+                resolve({ minDate, maxDate });
+            })
+            .on('error', reject);
+    });
+}
 
 function getMissingValues(filePath) {
     return new Promise((resolve, reject) => {
@@ -110,7 +110,7 @@ async function analyzeCSV(filePath) {
     const recordCount = await countRecords(filePath);
     const uniqueWords = await countUniqueWords(filePath);
     const wordStats = await getWordStats(filePath);
-    // const dateRange = await getDateRange(filePath);
+    const dateRange = await getDateRange(filePath);
     const missingValues = await getMissingValues(filePath);
 
     console.log(`Количество записей: ${recordCount}`);
@@ -119,9 +119,9 @@ async function analyzeCSV(filePath) {
     console.log(`Максимальное количество слов: ${wordStats.max}`);
     console.log(`Среднее количество слов: ${wordStats.avg}`);
     console.log(`Медианное количество слов: ${wordStats.median}`);
-    // console.log(`Диапазон дат: от ${dateRange.minDate} до ${dateRange.maxDate}`);
+    console.log(`Диапазон дат: от ${dateRange.minDate} до ${dateRange.maxDate}`);
     console.log(`Доля пропусков:`, missingValues);
 }
 
 // Пример вызова функции анализа CSV
-analyzeCSV('./thesun.csv');
+analyzeCSV('./foxnews.csv');

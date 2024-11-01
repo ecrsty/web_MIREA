@@ -66,10 +66,27 @@ const sources = {
     ]
 }
 
+function normalizeDate(stringdate, oldDateFormat, newDateFormat="yyyy-MM-dd HH:mm:ss") {
+    let d = parse(stringdate, oldDateFormat, new Date());
+    let newd = format(d, newDateFormat);
+    return newd;
+}
+
 async function scrapeCNN(url) {
     let html = await request(url);
     let $ = cheerio.load(html);
 
+    let rawDate = $("div.timestamp").text().replace('Published', '').replace('Updated', '').trim();
+    if (rawDate) {
+        let [timePart, datePart, yearPart] = rawDate.split(',').map(str => str.trim());
+        let [time, amPm] = timePart.split(' ').slice(0, 2);
+        let timeWithoutTZ = `${time} ${amPm}`;
+        let dateWithoutDay = datePart.split(' ').slice(1).join(' ');
+
+        // Объединяем строку для парсинга
+        rawDate = `${dateWithoutDay} ${yearPart} ${timeWithoutTZ}`;
+    }
+        
     let data = {
         link: url,
         header: $("div.headline__wrapper").text().trim(),
@@ -79,7 +96,7 @@ async function scrapeCNN(url) {
                                         .replace(/,\s*CNN$/, '')
                                         .split(', ')
                                         .map(name => name.trim()),
-        publish_date: $("div.timestamp").text().replace('Published', '').replace('Updated', '').trim(),
+        publish_date: rawDate ? normalizeDate(rawDate, "MMMM d yyyy h:mm a") : '',
         reading_time: $("div.headline__sub-description").text().replace('read', '').trim(),
         category: $("div.breadcrumb").text().split('/').map(cat => cat.trim()),
         text: $("div.article__content-container p").map((i, el) => $(el).text().trim()).get().join(' '),
@@ -91,19 +108,29 @@ async function scrapeCNN(url) {
 async function scrapeEuronews(url) {
     let html = await request(url);
     let $ = cheerio.load(html);
+    
+    let oldDateFormat = "yyyy-MM-dd HH:mm xxx";
 
     // Проверка, существует ли блок swiper-slide-active
     let doc = $("div.swiper-slide-active").length ? $("div.swiper-slide-active") : $("body");
+
+    let rawPublishDate = doc.find("div.c-article-publication-date time").first().attr('datetime');
+    let rawUpdateDate = doc.find("div.c-article-publication-date time").length > 1 
+    ? doc.find("div.c-article-publication-date time").last().attr('datetime') 
+    : '';
+    if (rawUpdateDate.length == 5){
+        let newupdate = rawPublishDate.split(' ');
+        newupdate[1] = rawUpdateDate;
+        rawUpdateDate = newupdate.join(' ');
+    }
 
     // Извлечение данных
     let data = {
         link: url,
         header: doc.find("h1").text().trim(),
         author: doc.find("div.c-article-contributors").text().trim().replace(/^By\s*/, ''),
-        publish_date: doc.find("div.c-article-publication-date time").first().attr('datetime'),
-        update_date: doc.find("div.c-article-publication-date time").length > 1 
-        ? doc.find("div.c-article-publication-date time").last().attr('datetime') 
-        : '', // Пустое поле, если нет даты обновления
+        publish_date: rawPublishDate ? normalizeDate(rawPublishDate, oldDateFormat) : '',
+        update_date: rawUpdateDate !== '' ? normalizeDate(rawUpdateDate, oldDateFormat) : '',
         category: doc.find("#adb-article-breadcrumb a.active").text().trim(),
         summary: doc.find("p.c-article-summary").text().trim(),
         text: doc.find("div.c-article-content p").map((i, el) => $(el).text().trim()).get().join(' '),
@@ -112,9 +139,12 @@ async function scrapeEuronews(url) {
     return data;
 }
 
+
 async function scrapeFoxnews(url) {
     let html = await request(url);
     let $ = cheerio.load(html);
+    
+    let rawPublishDate = $("time").text().split('EDT')[0].trim().replace(/\s[A-Z]{2,4}$/, '');
 
     let data = {
         link: url,
@@ -123,28 +153,32 @@ async function scrapeFoxnews(url) {
         author: $("div.author-byline span span").text()
                                         .replace(/By\n\s*/, '')
                                         .trim(),
-        publish_date: $("time").text().split('EDT')[0].trim(),
+        publish_date: rawPublishDate ? normalizeDate(rawPublishDate.toString(), "MMMM d, yyyy h:mma") : '',
         category: $("span.eyebrow").text().trim(),
         text: $("div.article-content p").map((i, el) => $(el).text().trim()).get().join(' '),
     };
-
+    // console.log(data)
     return data;
 }
 
 async function scrapeMetro(url) {
     let html = await request(url);
     let $ = cheerio.load(html);
+    
+    let oldDateFormat = "MMM d, yyyy, h:mma";
+    let rawPublishDate = $('span.post-published').text().trim().replace('Published', '').trim();
+    let rawUpdateDate = $('span.post-modified').text().replace('|', ' ').replace('Updated', '').trim();
 
     let data = {
         link: url,
         header: $("h1.post-title").text().trim(),
         author: $("span.author-container").text().trim(),
-        publish_date: $('span.post-published').text().trim().replace('Published', '').trim(),
-        modif_date: $('span.post-modified').text().replace('|', ' ').replace('Updated', '').trim(),
+        publish_date: rawPublishDate ? normalizeDate(rawPublishDate, oldDateFormat) : '',
+        update_date: rawUpdateDate ? normalizeDate(rawUpdateDate, oldDateFormat) : '',
         category: $('div.met-breadcrumb').text().split('›').map(cat => cat.trim()),
         text: $('div.article-body p').map((i, el) => $(el).text().trim()).get().join(' '),
     }
-    console.log(data);
+    // console.log(data);
     return data;
 }
 
@@ -159,19 +193,14 @@ async function scrapeSun(url) {
         author: $("div.article__author").text().trim(),
         // publish_date: $("li.article__published").text().trim().replace('Published: ', ''),
         // update: $("li.article__updated").text().trim().replace('Updated: ', ''),
-        publish_date: $("li.article__published").find('time').attr('datetime'),
-        update: $("li.article__updated").find('time').attr('datetime'),
+        publish_date: parseISO($("li.article__published").find('time').attr('datetime')),
+        update: parseISO($("li.article__updated").find('time').attr('datetime')),
         category: $('ul.breadcrumbs li a').map((i, el) => $(el).text().trim()).get(),
         text: $('div.article__content p').map((i, el) => $(el).text().trim()).get().join(' '),
     };
     
     return data;
 }
-
-// function normalizeDate(stringdate, normalizeFormat) {
-//     return format()
-// }
-
 
 async function scrapeWebsite(url, site) {
     try {  
@@ -192,7 +221,6 @@ async function scrapeWebsite(url, site) {
                 break;
             case "thesun":
                 fScrape = scrapeSun;
-                parsedDate = parseISO(dateString); // ISO 8601 формат, можно использовать parseISO напрямую
                 break;
             default: 
                 console.log("Веб-сайт не определен");
@@ -253,45 +281,6 @@ async function writeToCSV(data, save_path) {
     }
 }
 
-
-// Тестовая функция для проверки задержки
-async function testDelayFunction() {
-    for (const [site, links] of Object.entries(sources)) {
-        console.log(`\n\n=== Проверка задержки для сайта: ${site} ===`);
-        let save_path = `./${site}.csv`;
-        console.log("Сохраняем в: "+save_path);
-
-        for (const url of links) {
-            console.log(`\nПроверяем задержку на ссылке: ${url}`);
-            await writeToCSV(test_data, save_path)
-            await delay(10000); // Задержка 10 секунд
-        }
-
-        console.log(`\nЗавершена проверка задержки для сайта: ${site}\n\n`);
-    }
-}
-
-// Запуск тестовой функции
-// testDelayFunction();
-
-
-// async function scrapeAllWebsites(sources) {
-//     for (const [site, links] of Object.entries(sources)) {
-//         console.log(`\n\n=== Парсинг ссылок для сайта: ${site} ===`);
-//         let save_path = `./${site}.csv`;
-
-//         for (const url of links) {
-//             console.log(`\nПарсим ссылку: ${url}`);
-//             let data = await scrapeWebsite(url, site); // Парсим данные с текущей ссылки
-//             await writeToCSV(data, save_path)
-//             await delay(17500); // Задержка 17.5 секунд между запросами
-//         }
-
-//         console.log(`\nЗавершен парсинг ссылок для сайта: ${site}\n\n`);
-//     }
-// }
-
-
 async function scrapeAllWebsites(sources, n = 50) {
     // Создаем массив промисов для каждого сайта
     const sitePromises = Object.entries(sources).map(async ([site, links]) => {
@@ -319,55 +308,55 @@ async function scrapeAllWebsites(sources, n = 50) {
 // scrapeAllWebsites();
 
 
-function normalizeDate(dateString, source) {
-    let parsedDate;
+// function normalizeDate(dateString, source) {
+//     let parsedDate;
 
-    try {
-        switch (source.toLowerCase()) {
-            case 'cnn':
-                let [timePart, datePart, yearPart] = dateString.split(',').map(str => str.trim());
-                // Разделим время по пробелам, чтобы получить время
-                let [time, amPm] = timePart.split(' ').slice(0, 2);
-                let timeWithoutTZ = `${time} ${amPm}`;
-                // Убираем день недели из даты
-                let dateWithoutDay = datePart.split(' ').slice(1).join(' ');
+//     try {
+//         switch (source.toLowerCase()) {
+//             case 'cnn':
+//                 let [timePart, datePart, yearPart] = dateString.split(',').map(str => str.trim());
+//                 // Разделим время по пробелам, чтобы получить время
+//                 let [time, amPm] = timePart.split(' ').slice(0, 2);
+//                 let timeWithoutTZ = `${time} ${amPm}`;
+//                 // Убираем день недели из даты
+//                 let dateWithoutDay = datePart.split(' ').slice(1).join(' ');
 
-                // Объединяем строку для парсинга
-                const combinedDateString = `${dateWithoutDay} ${yearPart} ${timeWithoutTZ}`;
+//                 // Объединяем строку для парсинга
+//                 const combinedDateString = `${dateWithoutDay} ${yearPart} ${timeWithoutTZ}`;
 
-                parsedDate = parse(combinedDateString, "MMMM d yyyy h:mm a", new Date());
-                break;
-            case 'euronews':
-                parsedDate = parse(dateString, "yyyy-MM-dd HH:mm xxx", new Date());
-                break;
-            case 'foxnews':
-                // Удаляем текстовый часовой пояс
-                dateString = dateString.replace(/\s[A-Z]{2,4}$/, '');
-                parsedDate = parse(dateString, "MMMM d, yyyy h:mma", new Date());
-                break;
-            case 'metro':
-                parsedDate = parse(dateString, "MMM d, yyyy, h:mma", new Date());
-                break;
-            case 'thesun':
-                parsedDate = parseISO(dateString); // ISO 8601 формат
-                break;
-            default:
-                throw new Error("Неизвестный источник");
-        }
+//                 parsedDate = parse(combinedDateString, "MMMM d yyyy h:mm a", new Date());
+//                 break;
+//             case 'euronews':
+//                 parsedDate = parse(dateString, "yyyy-MM-dd HH:mm xxx", new Date());
+//                 break;
+//             case 'foxnews':
+//                 // Удаляем текстовый часовой пояс
+//                 dateString = dateString.replace(/\s[A-Z]{2,4}$/, '');
+//                 parsedDate = parse(dateString, "MMMM d, yyyy h:mma", new Date());
+//                 break;
+//             case 'metro':
+//                 parsedDate = parse(dateString, "MMM d, yyyy, h:mma", new Date());
+//                 break;
+//             case 'thesun':
+//                 parsedDate = parseISO(dateString); // ISO 8601 формат
+//                 break;
+//             default:
+//                 throw new Error("Неизвестный источник");
+//         }
 
-        return format(parsedDate, "yyyy-MM-dd HH:mm:ss");
-    } catch (error) {
-        console.error(`Ошибка при обработке даты: ${dateString} из источника ${source}`, error);
-        return null;
-    }
-}
+//         return format(parsedDate, "yyyy-MM-dd HH:mm:ss");
+//     } catch (error) {
+//         console.error(`Ошибка при обработке даты: ${dateString} из источника ${source}`, error);
+//         return null;
+//     }
+// }
 
-// Примеры использования
-console.log(normalizeDate("6:19 AM EDT, Fri October 25, 2024", "cnn"));       // 2024-10-25 06:19:00
-console.log(normalizeDate("2024-10-25 12:58 +02:00", "euronews"));           // 2024-10-25 12:58:00
-console.log(normalizeDate("October 31, 2024 5:48am EDT", "foxnews"));        // 2024-10-31 05:48:00
-console.log(normalizeDate("Oct 26, 2024, 4:14pm", "metro"));                 // 2024-10-26 16:14:00
-console.log(normalizeDate("2024-10-26T13:51:21.000+00:00", "thesun")); 
+// // // Примеры использования
+// console.log(normalizeDate("6:19 AM EDT, Fri October 25, 2024", "cnn"));       // 2024-10-25 06:19:00
+// console.log(normalizeDate("2024-10-25 12:58 +02:00", "euronews"));           // 2024-10-25 12:58:00
+// console.log(normalizeDate("October 31, 2024 5:48am EDT", "foxnews"));        // 2024-10-31 05:48:00
+// console.log(normalizeDate("Oct 26, 2024, 4:14pm", "metro"));                 // 2024-10-26 16:14:00
+// console.log(normalizeDate("2024-10-26T13:51:21.000+00:00", "thesun")); 
 
 
 module.exports = {
