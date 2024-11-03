@@ -248,11 +248,11 @@ async function getSunLinks(url) {
 
 async function getSources() {
     const sites = [
-        { name: 'cnn', url: 'https://edition.cnn.com/', fetchLinks: getCNNLinks },
+        // { name: 'cnn', url: 'https://edition.cnn.com/', fetchLinks: getCNNLinks },
         { name: 'euronews', url: 'https://www.euronews.com/', fetchLinks: getEuroLinks },
-        { name: 'foxnews', url: 'https://www.foxnews.com/', fetchLinks: getFoxLinks },
+        // { name: 'foxnews', url: 'https://www.foxnews.com/', fetchLinks: getFoxLinks },
         { name: 'metro', url: 'https://metro.co.uk/', fetchLinks: getMetroLinks },
-        { name: 'thesun', url: 'https://www.thesun.co.uk/', fetchLinks: getSunLinks }
+        // { name: 'thesun', url: 'https://www.thesun.co.uk/', fetchLinks: getSunLinks }
     ];
 
     try {
