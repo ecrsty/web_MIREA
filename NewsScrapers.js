@@ -19,15 +19,15 @@ const urls = [
 ]
 
 const sources = {
-    // 'cnn' : [
-    //     "https://edition.cnn.com/2024/09/05/europe/munich-police-shoot-armed-suspect-intl",
-    //     "https://edition.cnn.com/style/cairo-forbes-international-tower-hydrogen-nac-spc/",
-    //     "https://edition.cnn.com/2024/09/27/tech/proto-hologram-boxes-3d-video-spc/",
-    //     "https://edition.cnn.com/2024/09/23/tech/new-emoji-2024",
-    //     "https://edition.cnn.com/2024/09/23/tech/social-media-ai-data-opt-out",
-    //     "https://edition.cnn.com/2024/09/23/tech/voiceitt-voice-recognition-speech-impairments-spc/",
-    //     "https://edition.cnn.com/2024/08/29/style/south-korea-k-pop-idols-tv-show-intl-hnk/"
-    // ],
+    'cnn' : [
+        "https://edition.cnn.com/2024/09/05/europe/munich-police-shoot-armed-suspect-intl",
+        "https://edition.cnn.com/style/cairo-forbes-international-tower-hydrogen-nac-spc/",
+        "https://edition.cnn.com/2024/09/27/tech/proto-hologram-boxes-3d-video-spc/",
+        "https://edition.cnn.com/2024/09/23/tech/new-emoji-2024",
+        "https://edition.cnn.com/2024/09/23/tech/social-media-ai-data-opt-out",
+        "https://edition.cnn.com/2024/09/23/tech/voiceitt-voice-recognition-speech-impairments-spc/",
+        "https://edition.cnn.com/2024/08/29/style/south-korea-k-pop-idols-tv-show-intl-hnk/"
+    ],
     'euronews' : [
          "https://www.euronews.com/next/2024/10/30/the-atomium-a-gateway-to-understanding-nuclear-energy-euronews-tech-talks",
          "https://www.euronews.com/business/2024/11/02/what-effect-could-the-us-election-have-on-stocks-and-bonds",
@@ -35,15 +35,15 @@ const sources = {
          "https://www.euronews.com/travel/2024/11/02/soaring-rent-drunken-behaviour-and-peeing-in-public-split-locals-have-had-enough-of-party-",
          "https://www.euronews.com/culture/2024/10/31/meet-dj-ag-the-tiktok-dj-turning-londons-streets-into-a-viral-stage-for-up-and-coming-arti",
         ],
-    // 'foxnews' : [
-    //     "https://www.foxnews.com/world/ancient-painting-revealed-egypt-beneath-layers-bird-poop",
-    //     "https://www.foxnews.com/lifestyle/creative-couples-halloween-costumes",
-    //     "https://www.foxnews.com/world/archaeologists-discover-5000-year-old-ancient-community-morocco",
-    //     "https://www.foxnews.com/world/thailand-school-bus-bursts-flames-outside-bangkok-feared-dead-officials-say",
-    //     "https://www.foxnews.com/world/flooding-landslides-kill-200-nepal",
-    //     "https://www.foxnews.com/lifestyle/light-options-to-brighten-your-home",
-    //     "https://www.foxnews.com/lifestyle/kitchen-appliances-amazon-prime-big-deal-days"
-    // ],
+    'foxnews' : [
+        "https://www.foxnews.com/world/ancient-painting-revealed-egypt-beneath-layers-bird-poop",
+        "https://www.foxnews.com/lifestyle/creative-couples-halloween-costumes",
+        "https://www.foxnews.com/world/archaeologists-discover-5000-year-old-ancient-community-morocco",
+        "https://www.foxnews.com/world/thailand-school-bus-bursts-flames-outside-bangkok-feared-dead-officials-say",
+        "https://www.foxnews.com/world/flooding-landslides-kill-200-nepal",
+        "https://www.foxnews.com/lifestyle/light-options-to-brighten-your-home",
+        "https://www.foxnews.com/lifestyle/kitchen-appliances-amazon-prime-big-deal-days"
+    ],
     'metro' : [
         "https://metro.co.uk/2024/11/02/troy-deeney-names-most-disrespected-player-history-english-football-21907155/",
         "https://metro.co.uk/2024/11/01/eastenders-kat-slater-isnt-too-fierce-a-victim-abuse-21900254/",
@@ -51,15 +51,15 @@ const sources = {
         "https://metro.co.uk/2024/11/01/coronation-street-legend-quits-job-sad-death-loved-ones-reel-21902780/",
         
     ],
-    // 'thesun' : [
-    //     "https://www.thesun.co.uk/news/30829932/teenage-girl-killed-motorway-crash-m65-burnley/",
-    //     "https://www.thesun.co.uk/news/30815467/inside-evil-corp-hacking-family-russia-maksim/",
-    //     "https://www.thesun.co.uk/news/30842703/westminster-academy-acid-attack-arrest/",
-    //     "https://www.thesun.co.uk/news/30831180/parents-kids-career-creative-industry/",
-    //     "https://www.thesun.co.uk/sport/18922011/win-watch-7dp/",
-    //     "https://www.thesun.co.uk/health/30791629/smoking-rates-record-low-uk-vaping-rise-millions/",
-    //     "https://www.thesun.co.uk/tvandshowbiz/30832143/paul-ogrady-countryside-mansion-sale-neighbours-row/"
-    // ]
+    'thesun' : [
+        "https://www.thesun.co.uk/news/30829932/teenage-girl-killed-motorway-crash-m65-burnley/",
+        "https://www.thesun.co.uk/news/30815467/inside-evil-corp-hacking-family-russia-maksim/",
+        "https://www.thesun.co.uk/news/30842703/westminster-academy-acid-attack-arrest/",
+        "https://www.thesun.co.uk/news/30831180/parents-kids-career-creative-industry/",
+        "https://www.thesun.co.uk/sport/18922011/win-watch-7dp/",
+        "https://www.thesun.co.uk/health/30791629/smoking-rates-record-low-uk-vaping-rise-millions/",
+        "https://www.thesun.co.uk/tvandshowbiz/30832143/paul-ogrady-countryside-mansion-sale-neighbours-row/"
+    ]
 }
 
 function normalizeDate(stringdate, oldDateFormat, newDateFormat="yyyy-MM-dd HH:mm:ss") {
@@ -296,12 +296,12 @@ async function scrapeAllWebsites(sources, n=sources.length) {
         for (const url of links.slice(0, n)) {
             console.log(`\nПарсим ссылку: ${url}`);
             let data = await scrapeWebsite(url, site);
-            // await writeToCSV(data, save_path);
+            await writeToCSV(data, save_path);
             if (data) {
                 data.source = site;
                 await saveArticle(data);
             }
-            await delay(20000); // Задержка 18 секунд между запросами для одного сайта
+            await delay(20000); // Задержка 20 секунд между запросами для одного сайта
         }
 
         console.log(`\nЗавершен парсинг ссылок для сайта: ${site}\n\n`);
@@ -312,7 +312,6 @@ async function scrapeAllWebsites(sources, n=sources.length) {
     console.log("\n=== Парсинг завершен для всех сайтов ===");
 }
 
-scrapeAllWebsites(sources)
 
 module.exports = {
     scrapeAllWebsites

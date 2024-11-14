@@ -194,65 +194,13 @@ async function getSunLinks(url) {
     }
 }
 
-// let url1 = 'https://edition.cnn.com/';
-// let url2 = 'https://www.foxnews.com/';
-// let url3 = 'https://www.euronews.com/';
-// let url4 = 'https://metro.co.uk/';
-// let url5 = 'https://www.thesun.co.uk/';
-
-// async function getSources(site) {
-//     try {
-//         let fGetLinks;
-//         let url;
-//         switch (site.toLowerCase()) {
-//             case "cnn":
-//                 url = 'https://edition.cnn.com/';
-//                 fGetLinks = getCNNLinks;
-//                 break;
-//             case "euronews":
-//                 url = 'https://www.euronews.com/';
-//                 fGetLinks = getEuroLinks;
-//                 break;
-//             case "foxnews":
-//                 url = 'https://www.foxnews.com/';
-//                 fGetLinks = getFoxLinks;
-//                 break;
-//             case "metro":
-//                 url = 'https://metro.co.uk/';
-//                 fGetLinks = getMetroLinks;
-//                 break;
-//             case "thesun":
-//                 url = 'https://www.thesun.co.uk/';
-//                 fGetLinks = getSunLinks;
-//                 break;
-//             default: 
-//                 console.log("Веб-сайт не определен");
-//                 return null;
-//         }
-        
-//         let links = await fGetLinks(url)
-//         console.log(`\nЗавершен парсинг ссылок для сайта: ${site}\n\n`);
-//         return links;
-//     }
-//     catch (error) {
-//         console.error(`Ошибка при парсинге ${url}:`, error.message);
-//       }
-// }
-
-// getCNNLinks(url1).then((links) => console.log(links));
-// getFoxLinks(url2).then((links) => console.log(links));
-// getEuroLinks(url3).then((links) => console.log(links));
-// getMetroLinks(url4).then((links) => console.log(links));
-// getSunLinks(url5).then((links) => console.log(links));
-
-
 async function getSources() {
     const sites = [
-        // { name: 'cnn', url: 'https://edition.cnn.com/', fetchLinks: getCNNLinks },
+        { name: 'cnn', url: 'https://edition.cnn.com/', fetchLinks: getCNNLinks },
         { name: 'euronews', url: 'https://www.euronews.com/', fetchLinks: getEuroLinks },
-        // { name: 'foxnews', url: 'https://www.foxnews.com/', fetchLinks: getFoxLinks },
+        { name: 'foxnews', url: 'https://www.foxnews.com/', fetchLinks: getFoxLinks },
         { name: 'metro', url: 'https://metro.co.uk/', fetchLinks: getMetroLinks },
-        // { name: 'thesun', url: 'https://www.thesun.co.uk/', fetchLinks: getSunLinks }
+        { name: 'thesun', url: 'https://www.thesun.co.uk/', fetchLinks: getSunLinks }
     ];
 
     try {
@@ -274,5 +222,5 @@ async function getSources() {
 
 // Вызов функции для передачи в scrapeAllWebsites
 getSources().then(sources => {
-    scrapeAllWebsites(sources); // Запуск scrapeAllWebsites с собранными ссылками
+    scrapeAllWebsites(sources, 50); // Запуск scrapeAllWebsites с собранными ссылками
 });
