@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../database');
+const ScrapingSession = require('./scrapingSession');
 
 const Article = sequelize.define('Article', {
     id: {
@@ -52,8 +53,19 @@ const Article = sequelize.define('Article', {
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    scraping_session_id: {
+      type: DataTypes.INTEGER,
+      references: {
+          model: ScrapingSession,
+          key: 'id'
+      },
+      allowNull: true
+    },
   }, {
+    tableName: 'Articles',
     timestamps: false,
   });
   
+  Article.belongsTo(ScrapingSession, { foreignKey: 'scraping_session_id' }); // устанавливаем связь
+
   module.exports = Article;

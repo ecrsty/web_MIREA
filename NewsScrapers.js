@@ -5,6 +5,7 @@ const fs = require('fs')
 const { createObjectCsvWriter } = require('csv-writer'); // забираем только нужный метод из модуля
 const { parse, parseISO, format } = require('date-fns');
 const saveArticle = require('./saveArticle');
+const ScrapingSession = require('./models/scrapingSession');
 
 
 // Функция для задержки между запросами
@@ -241,29 +242,6 @@ async function scrapeWebsite(url, site) {
     }
   }
 
-// const test_data = {
-//     header: "‘Danger to life’ weather warning in place today with 100mm of rain forecast in UK",
-//     author: "Josh Milton",
-//     publish_date: "Published Sep 8, 2024, 5:45am",
-//     modif_date: "Updated Sep 8, 2024, 3:13pm",
-//     category: [
-//       "Home",
-//       "News",
-//       "UK",
-//     ],
-//     text: "With a yellow weather warning covering two-thirds of England and Wales in place, you can probably guess the weather won’t be great today. The warning for heavy and thundery rain started yesterday at 9pm and will end at 8pm today. While forecasters admit the outlook for today remains uncertain, they expect it to bucket it down in western England and southern Wales especially. Slow-moving showers and thunderstorms, meanwhile, will crawl across the east. How much rain you will see will vary wildly. Some might see only 10mm or so, while others in areas under the yellow weather warning might see up to 60mm. ‘There is a lower chance that a few spots within the warning area could see 80-100 mm of rain by the end of Sunday which may fall in a fairly small period of time,’ the warning says. ‘These higher totals are slightly more probable in the southern half of the warning area. ‘Given this region has also seen a lot of rain since Thursday, impacts may be more likely than would normally be expected for the time of year here.’ Weather officials issue a yellow weather warning when the weather is ‘likely’ to cause some upheaval. Power outages are possible today, as is flooding that could damage buildings, delay public transport and cut communities off due to flooded roads. Spray and flooding may make driving tricky. To get the latest news from the capital visit Metro.co.uk's London news hub. ‘There is a small chance of fast flowing or deep floodwater causing danger to life,’ the alert adds. Met Office Chief Meteorologist Matthew Lehnert said: ‘It’s a different story further north though, as high pressure brings warmer and sunnier conditions, with higher-than-average temperatures, particularly across parts of western Scotland. Major discount store with more than 800 shops nationwide to close branch Teenager compared to a 'burnt chip' urges younger generations not to use sunbeds London Underground 'ghost ride' that sees trains stop at the same station twice Protesters clash with police cordon after thousands march through central London ‘Eastern areas are likely to be cooler and at times, cloudier due to winds blowing off the North Sea.’ After several days of non-stop yellow weather warnings, however, next week doesn’t look so bad. None are currently in place for a start. But forecasters say things will remain ‘unsettled’ and even a tad cold on Tuesday as the wind direction changes. The north will be feeling the cold especially with showers or long spells of rain and blustery wind expected for most of the UK. Get in touch with our news team by emailing us at webnews@metro.co.uk. For more stories like this, check our news page. MORE : This is officially the unhappiest place to live in the UK MORE : 721 children treated by ‘rogue surgeon’ at Great Ormond Street MORE : Plane crashes into east London field with man in hospital Privacy Policy",
-//   }
-
-// scrapeWebsite(sources.metro[1], "metro")  
-// scrapeWebsite(urls[3], "metro")
-// scrapeWebsite(urls[4], "thesun")
-
-// const csvWriterCNN = createObjectCsvWriter({
-//     path: './cnn.csv',
-//     header: Object.keys(cnnSelectors).map(key => ({ id: key, title: key }))
-//   });
-//   await csvWriter.writeRecords([data]);
-
 async function writeToCSV(data, save_path) {
     try {
         // Проверяем, существует ли файл
@@ -286,7 +264,41 @@ async function writeToCSV(data, save_path) {
     }
 }
 
+// добавляет данные о начале и конце парсинга
+async function startScraping() {
+    const session = await ScrapingSession.create({
+        start_time: new Date()
+    });
+
+    const sessionId = session.id;
+
+    console.log(`Началась сессия сбора данных. ID: ${sessionId}`);
+
+    return sessionId;
+}
+
+async function endScraping(sessionId, totalArticles) {
+    try {
+        await ScrapingSession.update(
+            {
+                end_time: new Date(),
+                status: 'completed',
+                total_articles: totalArticles
+            },
+            {
+                where: { id: sessionId }
+            }
+        );
+        console.log(`Сессия ${sessionId} завершена. Всего статей: ${totalArticles}`);
+    } catch (error) {
+        console.error(`Ошибка завершения сессии ${sessionId}`, error);
+    }
+}
+
 async function scrapeAllWebsites(sources, n=sources.length) {
+    const sessionId = await startScraping(); // Запуск сессии сбора данных
+    let totalArticles = 0;
+
     // Создаем массив промисов для каждого сайта
     const sitePromises = Object.entries(sources).map(async ([site, links]) => {
         console.log(`\n\n=== Начинаем парсинг первых ${n} ссылок для сайта: ${site} ===`);
@@ -299,7 +311,11 @@ async function scrapeAllWebsites(sources, n=sources.length) {
             await writeToCSV(data, save_path);
             if (data) {
                 data.source = site;
-                await saveArticle(data);
+                // await saveArticle(data);
+                const isSaved = await saveArticle(data, sessionId);
+                if (isSaved) {
+                    totalArticles++;
+                }
             }
             await delay(20000); // Задержка 20 секунд между запросами для одного сайта
         }
@@ -309,7 +325,10 @@ async function scrapeAllWebsites(sources, n=sources.length) {
 
     // Запускаем парсинг для всех сайтов одновременно
     await Promise.all(sitePromises);
-    console.log("\n=== Парсинг завершен для всех сайтов ===");
+    console.log(`\n=== Парсинг завершен для всех сайтов ===`);
+
+    // Завершаем сессию
+    await endScraping(sessionId, totalArticles);
 }
 
 

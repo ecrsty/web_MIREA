@@ -1,5 +1,6 @@
 const sequelize = require('./database');
 const Article = require('./models/article');
+const ScrapingSession = require('./models/scrapingSession');
 
 (async () => {
   try {

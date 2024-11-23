@@ -1,6 +1,6 @@
 const Article = require('./models/article');
 
-async function saveArticle(articleData) {
+async function saveArticle(articleData, sessionId) {
   try {
     // Преобразуем массивы в строки, если нужно
     if (Array.isArray(articleData.category)) {
@@ -21,15 +21,18 @@ async function saveArticle(articleData) {
 
     if (existingArticle) {
       // Обновляем существующую запись
-      await existingArticle.update(articleData);
+      await existingArticle.update({...articleData, scraping_session_id: sessionId});
       console.log(`Запись обновлена: ${articleData.link}`);
-    } else {
+    } else {  
       // Создаем новую запись
-      await Article.create(articleData);
+      await Article.create({...articleData, scraping_session_id: sessionId});
       console.log(`Запись добавлена: ${articleData.link}`);
     }
+
+    return true; // Успешное выполнение
   } catch (error) {
     console.error(`Ошибка сохранения статьи:  ${articleData.link}`, error);
+    return false; // Неуспешное выполнение
   }
 }
 
