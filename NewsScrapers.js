@@ -163,7 +163,7 @@ async function scrapeFoxnews(url) {
         category: $("span.eyebrow").text().trim(),
         text: $("div.article-content p").map((i, el) => $(el).text().trim()).get().join(' '),
     };
-    // console.log(data)
+    
     return data;
 }
 
@@ -184,7 +184,7 @@ async function scrapeMetro(url) {
         category: $('div.met-breadcrumb').text().split('›').map(cat => cat.trim()),
         text: $('div.article-body p').map((i, el) => $(el).text().trim()).get().join(' '),
     }
-    // console.log(data);
+
     return data;
 }
 
@@ -197,8 +197,6 @@ async function scrapeSun(url) {
         header: $("h1").text().trim(),
         subheader: $("div.article__subdeck").text().trim(),
         author: $("div.article__author").text().trim(),
-        // publish_date: $("li.article__published").text().trim().replace('Published: ', ''),
-        // update: $("li.article__updated").text().trim().replace('Updated: ', ''),
         publish_date: parseISO($("li.article__published").find('time').attr('datetime')),
         update_date: parseISO($("li.article__updated").find('time').attr('datetime')),
         category: $('ul.breadcrumbs li a').map((i, el) => $(el).text().trim()).get(),
@@ -234,7 +232,6 @@ async function scrapeWebsite(url, site) {
         }
 
         data = await fScrape(url);
-        // console.log(data);
         return data;
   
     } catch (error) {
@@ -259,6 +256,7 @@ async function writeToCSV(data, save_path) {
 
         await csvWriter.writeRecords([data]); // Пишем данные
         console.log("Данные успешно записаны в CSV.");
+
     } catch (error) {
         console.error("Ошибка при записи в CSV:", error.message);
     }

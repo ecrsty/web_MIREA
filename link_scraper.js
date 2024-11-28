@@ -221,6 +221,10 @@ async function getSources() {
 }
 
 // Вызов функции для передачи в scrapeAllWebsites
-getSources().then(sources => {
-    scrapeAllWebsites(sources, 50); // Запуск scrapeAllWebsites с собранными ссылками
-});
+// getSources().then(sources => {
+//     scrapeAllWebsites(sources, 50); // Запуск scrapeAllWebsites с собранными ссылками
+// });
+
+module.exports = {
+    getSources
+}

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Article Details</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 id="article-header" class="mb-4"></h1>
+    <p><strong>Source:</strong> <span id="article-source"></span></p>
+    <p><strong>Author:</strong> <span id="article-author"></span></p>
+    <p><strong>Published Date:</strong> <span id="article-publish-date"></span></p>
+    <p><strong>Updated Date:</strong> <span id="article-update-date"></span></p>
+    <p><strong>Category:</strong> <span id="article-category"></span></p>
+    <p><strong>Summary:</strong> <span id="article-summary"></span></p>
+    <h3>Article Text:</h3>
+    <p id="article-text"></p>
+    <a href="index.html" class="btn btn-primary mt-4">Back to Sources</a>
+  </div>
+
+  <script>
+    async function loadArticle() {
+      try {
+        // Получаем ID статьи из строки запроса
+        const params = new URLSearchParams(window.location.search);
+        const articleId = params.get('id');
+        if (!articleId) {
+          document.body.innerHTML = '<div class="container mt-5"><h1>Article ID not found!</h1></div>';
+          return;
+        }
+
+        // Запрашиваем данные о статье с сервера
+        const response = await fetch(`http://localhost:3000/articles/${articleId}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch article: ${response.statusText}`);
+        }
+
+        const article = await response.json();
+
+        // Заполняем элементы страницы данными
+        document.getElementById('article-header').textContent = article.header || 'No Title';
+        document.getElementById('article-source').textContent = article.source || 'Unknown';
+        document.getElementById('article-author').textContent = article.author || 'Unknown';
+        document.getElementById('article-publish-date').textContent = article.publish_date || 'N/A';
+        document.getElementById('article-update-date').textContent = article.update_date || 'N/A';
+        document.getElementById('article-category').textContent = article.category || 'No category';
+        document.getElementById('article-summary').textContent = article.summary || 'No summary';
+        document.getElementById('article-text').textContent = article.text || 'No content available.';
+      } catch (error) {
+        console.error('Ошибка при загрузке статьи:', error);
+        document.body.innerHTML = '<div class="container mt-5"><h1>Error loading article details</h1></div>';
+      }
+    }
+
+    loadArticle();
+  </script>
+</body>
+</html>

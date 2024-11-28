@@ -1,6 +1,7 @@
 const sequelize = require('./database');
-const Article = require('./models/article');
-const ScrapingSession = require('./models/scrapingSession');
+const {getSources} = require('./link_scraper');
+const {scrapeAllWebsites} = require('./NewsScrapers');
+
 
 (async () => {
   try {
@@ -10,6 +11,10 @@ const ScrapingSession = require('./models/scrapingSession');
     // Синхронизируем модель с БД
     await sequelize.sync();
     console.log('Модели синхронизированы с БД.');
+
+    getSources().then(sources => {
+          scrapeAllWebsites(sources, 50); // Запуск scrapeAllWebsites с собранными ссылками
+      });
 
   } catch (error) {
     console.error('Ошибка подключения к БД:', error);
