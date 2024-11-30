@@ -10,22 +10,31 @@
   <div class="container mt-5">
     <h1 id="article-header" class="mb-4"></h1>
     <p><strong>Source:</strong> <span id="article-source"></span></p>
-    <p><strong>Author:</strong> <span id="article-author"></span></p>
-    <p><strong>Published Date:</strong> <span id="article-publish-date"></span></p>
-    <p><strong>Updated Date:</strong> <span id="article-update-date"></span></p>
-    <p><strong>Category:</strong> <span id="article-category"></span></p>
-    <p><strong>Summary:</strong> <span id="article-summary"></span></p>
+    <p><strong>Author:</strong> <input id="article-author" class="form-control" disabled></p>
+    <p><strong>Published Date:</strong> <input id="article-publish-date" class="form-control" disabled></p>
+    <p><strong>Updated Date:</strong> <input id="article-update-date" class="form-control" disabled></p>
+    <p><strong>Category:</strong> <input id="article-category" class="form-control" disabled></p>
+    <p><strong>Summary:</strong> <textarea id="article-summary" class="form-control" rows="3" disabled></textarea></p>
     <h3>Article Text:</h3>
-    <p id="article-text"></p>
+    <textarea id="article-text" class="form-control mb-3" rows="10" disabled></textarea>
+
+    <div class="d-flex justify-content-between">
+      <button id="edit-article" class="btn btn-warning">Edit</button>
+      <button id="save-article" class="btn btn-success" disabled>Save</button>
+      <button id="delete-article" class="btn btn-danger">Delete</button>
+    </div>
+
     <a href="index.html" class="btn btn-primary mt-4">Back to Sources</a>
   </div>
 
   <script>
+    let articleId;
+
     async function loadArticle() {
       try {
         // Получаем ID статьи из строки запроса
         const params = new URLSearchParams(window.location.search);
-        const articleId = params.get('id');
+        articleId = params.get('id');
         if (!articleId) {
           document.body.innerHTML = '<div class="container mt-5"><h1>Article ID not found!</h1></div>';
           return;
@@ -42,17 +51,76 @@
         // Заполняем элементы страницы данными
         document.getElementById('article-header').textContent = article.header || 'No Title';
         document.getElementById('article-source').textContent = article.source || 'Unknown';
-        document.getElementById('article-author').textContent = article.author || 'Unknown';
-        document.getElementById('article-publish-date').textContent = article.publish_date || 'N/A';
-        document.getElementById('article-update-date').textContent = article.update_date || 'N/A';
-        document.getElementById('article-category').textContent = article.category || 'No category';
-        document.getElementById('article-summary').textContent = article.summary || 'No summary';
-        document.getElementById('article-text').textContent = article.text || 'No content available.';
+        document.getElementById('article-author').value = article.author || '';
+        document.getElementById('article-publish-date').value = article.publish_date || '';
+        document.getElementById('article-update-date').value = article.update_date || '';
+        document.getElementById('article-category').value = article.category || '';
+        document.getElementById('article-summary').value = article.summary || '';
+        document.getElementById('article-text').value = article.text || '';
       } catch (error) {
         console.error('Ошибка при загрузке статьи:', error);
         document.body.innerHTML = '<div class="container mt-5"><h1>Error loading article details</h1></div>';
       }
     }
+
+    // Режим редактирования
+    document.getElementById('edit-article').addEventListener('click', () => {
+      document.querySelectorAll('input, textarea').forEach(el => el.disabled = false);
+      document.getElementById('save-article').disabled = false;
+    });
+
+    // Сохранение изменений
+    document.getElementById('save-article').addEventListener('click', async () => {
+      try {
+        const updatedArticle = {
+          author: document.getElementById('article-author').value,
+          publish_date: document.getElementById('article-publish-date').value,
+          update_date: document.getElementById('article-update-date').value,
+          category: document.getElementById('article-category').value,
+          summary: document.getElementById('article-summary').value,
+          text: document.getElementById('article-text').value,
+        };
+
+        const response = await fetch(`http://localhost:3000/articles/${articleId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedArticle),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to save article: ${response.statusText}`);
+        }
+
+        alert('Article updated successfully!');
+        document.querySelectorAll('input, textarea').forEach(el => el.disabled = true);
+        document.getElementById('save-article').disabled = true;
+      } catch (error) {
+        console.error('Ошибка при сохранении статьи:', error);
+        alert('Failed to save the article.');
+      }
+    });
+
+    // Удаление статьи
+    document.getElementById('delete-article').addEventListener('click', async () => {
+      try {
+        const confirmDelete = confirm('Are you sure you want to delete this article?');
+        if (!confirmDelete) return;
+
+        const response = await fetch(`http://localhost:3000/articles/${articleId}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to delete article: ${response.statusText}`);
+        }
+
+        alert('Article deleted successfully!');
+        window.location.href = 'index.html';
+      } catch (error) {
+        console.error('Ошибка при удалении статьи:', error);
+        alert('Failed to delete the article.');
+      }
+    });
 
     loadArticle();
   </script>

@@ -9,124 +9,201 @@
 </head>
 <body>
   <div class="container mt-5">
-    <h1 id="sourceName">Source Analytics</h1>
-    
     <!-- Аналитика -->
-    <div class="mb-5">
-      <h3>Publishing Trends</h3>
-      <canvas id="timeChart" width="400" height="200"></canvas>
+    <h1 id="source-title" class="mb-4"></h1>
+    <div class="row">
+      <div class="col-md-4">
+        <canvas id="articlesByTime" style="max-height: 300px;"></canvas>
+      </div>
+      <div class="col-md-4">
+        <canvas id="tagsDistribution" style="max-height: 300px;"></canvas>
+      </div>
+      <div class="col-md-4">
+        <canvas id="updateDistribution" style="max-height: 300px;"></canvas>
+      </div>
     </div>
-
-    <div class="mb-5">
-      <h3>Tags Distribution</h3>
-      <canvas id="tagsChart" width="400" height="200"></canvas>
-    </div>
-
-    <div class="mb-5">
-      <h3>Updated vs Not Updated</h3>
-      <canvas id="updatesChart" width="400" height="200"></canvas>
-    </div>
-
-    <!-- Список статей -->
-    <h3>Articles</h3>
-    <ul id="articlesList" class="list-group"></ul>
+    <!-- Статьи -->
+    <h2 class="mt-5">Articles</h2>
+    <ul id="articles-list" class="list-group mt-3"></ul>
   </div>
 
   <script>
-    // Получаем параметр source из URL
-    const params = new URLSearchParams(window.location.search);
-    const source = params.get('source') || 'Unknown';
+    // // Получаем параметр source из URL
+    // const params = new URLSearchParams(window.location.search);
+    // const source = params.get('source') || 'Unknown';
 
-    // Устанавливаем название источника
-    document.getElementById('sourceName').textContent = `Source: ${source}`;
+    // // Устанавливаем название источника
+    // document.getElementById('sourceName').textContent = `Source: ${source}`;
 
-    // Функция для загрузки данных по источнику
-    async function fetchSourceData() {
+    // // Функция для загрузки данных по источнику
+    // async function fetchSourceData() {
+    //   try {
+    //     // Запрос на сервер для получения всех статей
+    //     const response = await fetch('http://localhost:3000/articles');
+    //     const articles = await response.json();
+
+    //     // Фильтруем статьи по источнику
+    //     const filteredArticles = articles.filter(article => article.source === source);
+
+    //     // Список статей
+    //     const articlesList = document.getElementById('articlesList');
+    //     filteredArticles.forEach(article => {
+    //       const listItem = document.createElement('li');
+    //       listItem.className = 'list-group-item';
+    //       listItem.innerHTML = `<a href="article.html?id=${article.id}">${article.header}</a>`;
+    //       articlesList.appendChild(listItem);
+    //     });
+
+    //     // Динамическая аналитика
+    //     generateCharts(filteredArticles);
+    //   } catch (error) {
+    //     console.error('Ошибка при загрузке данных:', error);
+    //   }
+    // }
+
+    // // Функция для генерации графиков
+    // function generateCharts(articles) {
+    //   // Данные для графиков
+    //   const publicationDates = articles.map(article => new Date(article.publish_date).toLocaleDateString());
+    //   const tags = articles.flatMap(article => article.category.split(', '));
+    //   const updatedCounts = [
+    //     articles.filter(article => article.update_date).length,
+    //     articles.filter(article => !article.update_date).length
+    //   ];
+
+    //   // График публикаций
+    //   const ctxTime = document.getElementById('timeChart').getContext('2d');
+    //   new Chart(ctxTime, {
+    //     type: 'line',
+    //     data: {
+    //       labels: [...new Set(publicationDates)], // Уникальные даты
+    //       datasets: [{
+    //         label: 'Number of Articles',
+    //         data: publicationDates.reduce((acc, date) => {
+    //           acc[date] = (acc[date] || 0) + 1;
+    //           return acc;
+    //         }, {}),
+    //         borderColor: 'blue',
+    //         fill: false
+    //       }]
+    //     }
+    //   });
+
+    //   // Круговая диаграмма по тегам
+    //   const ctxTags = document.getElementById('tagsChart').getContext('2d');
+    //   const tagCounts = tags.reduce((acc, tag) => {
+    //     acc[tag] = (acc[tag] || 0) + 1;
+    //     return acc;
+    //   }, {});
+    //   new Chart(ctxTags, {
+    //     type: 'pie',
+    //     data: {
+    //       labels: Object.keys(tagCounts),
+    //       datasets: [{
+    //         data: Object.values(tagCounts),
+    //         backgroundColor: ['red', 'green', 'blue', 'orange', 'purple']
+    //       }]
+    //     }
+    //   });
+
+    //   // Круговая диаграмма: Updated vs Not Updated
+    //   const ctxUpdates = document.getElementById('updatesChart').getContext('2d');
+    //   new Chart(ctxUpdates, {
+    //     type: 'doughnut',
+    //     data: {
+    //       labels: ['Updated', 'Not Updated'],
+    //       datasets: [{
+    //         data: updatedCounts,
+    //         backgroundColor: ['green', 'red']
+    //       }]
+    //     }
+    //   });
+    // }
+
+    // // Запускаем загрузку данных
+    // fetchSourceData();
+
+    async function loadSourceAnalytics() {
       try {
-        // Запрос на сервер для получения всех статей
-        const response = await fetch('http://localhost:3000/articles');
-        const articles = await response.json();
+        const params = new URLSearchParams(window.location.search);
+        const source = params.get('source');
+        if (!source) {
+          document.body.innerHTML = '<div class="container mt-5"><h1>Source not found!</h1></div>';
+          return;
+        }
 
-        // Фильтруем статьи по источнику
-        const filteredArticles = articles.filter(article => article.source === source);
+        const response = await fetch(`http://localhost:3000/analytics/${source}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch analytics: ${response.statusText}`);
+        }
+
+        const analytics = await response.json();
+
+        document.getElementById('source-title').textContent = `Analytics for ${source}`;
+
+        // Диаграмма: Articles by Time
+        new Chart(document.getElementById('articlesByTime').getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: analytics.articlesByTime.map(data => data.time),
+            datasets: [{
+              label: 'Number of Articles',
+              data: analytics.articlesByTime.map(data => data.count),
+              backgroundColor: 'rgba(75, 192, 192, 0.6)',
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Диаграмма: Tags Distribution
+        const sortedTags = analytics.tagsDistribution.sort((a, b) => b.count - a.count);
+        const topTags = sortedTags.slice(0, 7); // Топ-7 тегов
+        const otherCount = sortedTags.slice(7).reduce((sum, tag) => sum + tag.count, 0);
+        const labels = [...topTags.map(tag => tag.tag), 'Other'];
+        const data = [...topTags.map(tag => tag.count), otherCount];
+
+        new Chart(document.getElementById('tagsDistribution').getContext('2d'), {
+          type: 'pie',
+          data: {
+            labels,
+            datasets: [{
+              data,
+              backgroundColor: [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#27D989', '#D3D3D3'
+              ],
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Диаграмма: Update Distribution
+        new Chart(document.getElementById('updateDistribution').getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Updated', 'Not Updated'],
+            datasets: [{
+              data: [analytics.updatedCount, analytics.notUpdatedCount],
+              backgroundColor: ['#FF6384', '#36A2EB']
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
 
         // Список статей
-        const articlesList = document.getElementById('articlesList');
-        filteredArticles.forEach(article => {
+        const articlesList = document.getElementById('articles-list');
+        analytics.articles.forEach(article => {
           const listItem = document.createElement('li');
           listItem.className = 'list-group-item';
           listItem.innerHTML = `<a href="article.html?id=${article.id}">${article.header}</a>`;
           articlesList.appendChild(listItem);
         });
-
-        // Динамическая аналитика
-        generateCharts(filteredArticles);
       } catch (error) {
-        console.error('Ошибка при загрузке данных:', error);
+        console.error('Ошибка при загрузке аналитики:', error);
+        document.body.innerHTML = '<div class="container mt-5"><h1>Error loading analytics</h1></div>';
       }
     }
 
-    // Функция для генерации графиков
-    function generateCharts(articles) {
-      // Данные для графиков
-      const publicationDates = articles.map(article => new Date(article.publish_date).toLocaleDateString());
-      const tags = articles.flatMap(article => article.category.split(', '));
-      const updatedCounts = [
-        articles.filter(article => article.update_date).length,
-        articles.filter(article => !article.update_date).length
-      ];
-
-      // График публикаций
-      const ctxTime = document.getElementById('timeChart').getContext('2d');
-      new Chart(ctxTime, {
-        type: 'line',
-        data: {
-          labels: [...new Set(publicationDates)], // Уникальные даты
-          datasets: [{
-            label: 'Number of Articles',
-            data: publicationDates.reduce((acc, date) => {
-              acc[date] = (acc[date] || 0) + 1;
-              return acc;
-            }, {}),
-            borderColor: 'blue',
-            fill: false
-          }]
-        }
-      });
-
-      // Круговая диаграмма по тегам
-      const ctxTags = document.getElementById('tagsChart').getContext('2d');
-      const tagCounts = tags.reduce((acc, tag) => {
-        acc[tag] = (acc[tag] || 0) + 1;
-        return acc;
-      }, {});
-      new Chart(ctxTags, {
-        type: 'pie',
-        data: {
-          labels: Object.keys(tagCounts),
-          datasets: [{
-            data: Object.values(tagCounts),
-            backgroundColor: ['red', 'green', 'blue', 'orange', 'purple']
-          }]
-        }
-      });
-
-      // Круговая диаграмма: Updated vs Not Updated
-      const ctxUpdates = document.getElementById('updatesChart').getContext('2d');
-      new Chart(ctxUpdates, {
-        type: 'doughnut',
-        data: {
-          labels: ['Updated', 'Not Updated'],
-          datasets: [{
-            data: updatedCounts,
-            backgroundColor: ['green', 'red']
-          }]
-        }
-      });
-    }
-
-    // Запускаем загрузку данных
-    fetchSourceData();
+    loadSourceAnalytics();
   </script>
 </body>
 </html>
