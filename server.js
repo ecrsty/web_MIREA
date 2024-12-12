@@ -43,28 +43,25 @@ app.get('/sources', async (req, res) => {
   });
 
 
-// получение всех статей
-app.get('/articles', async (req, res) => {
+// Получение данных по источникам
+app.get('/analytics', async (req, res) => {
   try {
     const articles = await Article.findAll();
-    res.json(articles);
+    const analytics = articles.reduce((acc, article) => {
+      if (!acc[article.source]) {
+        acc[article.source] = { count: 0, updated: 0, notUpdated: 0 };
+      }
+      acc[article.source].count += 1;
+      if (article.update_date) {
+        acc[article.source].updated += 1;
+      } else {
+        acc[article.source].notUpdated += 1;
+      }
+      return acc;
+    }, {});
+    res.json(analytics);
   } catch (error) {
-    console.error('Ошибка при получении статей:', error);
-    res.status(500).send('Ошибка сервера');
-  }
-});
-
-// Получение статьи по ID
-app.get('/articles/:id', async (req, res) => {
-  try {
-    const article = await Article.findByPk(req.params.id);
-    if (article) {
-      res.json(article);
-    } else {
-      res.status(404).send('Статья не найдена');
-    }
-  } catch (error) {
-    console.error('Ошибка при получении статьи:', error);
+    console.error('Ошибка при получении аналитики:', error);
     res.status(500).send('Ошибка сервера');
   }
 });
@@ -136,6 +133,50 @@ app.get('/analytics/:source', async (req, res) => {
 });
 
 
+// Получение всех статей
+app.get('/articles', async (req, res) => {
+  try {
+    const articles = await Article.findAll();
+    res.json(articles);
+  } catch (error) {
+    console.error('Ошибка при получении статей:', error);
+    res.status(500).send('Ошибка сервера');
+  }
+});
+
+// Получение статьи по ID
+app.get('/articles/:id', async (req, res) => {
+  try {
+    const article = await Article.findByPk(req.params.id);
+    if (article) {
+      res.json(article);
+    } else {
+      res.status(404).send('Статья не найдена');
+    }
+  } catch (error) {
+    console.error('Ошибка при получении статьи:', error);
+    res.status(500).send('Ошибка сервера');
+  }
+});
+
+
+app.delete('/articles/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const article = await Article.findByPk(id);
+
+    if (!article) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
+    await article.destroy();
+    res.json({ message: 'Article deleted successfully' });
+  } catch (error) {
+    console.error('Ошибка при удалении статьи:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.put('/articles/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -171,48 +212,6 @@ app.put('/articles/:id', async (req, res) => {
   }
 });
 
-
-app.delete('/articles/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const article = await Article.findByPk(id);
-
-    if (!article) {
-      return res.status(404).json({ error: 'Article not found' });
-    }
-
-    await article.destroy();
-    res.json({ message: 'Article deleted successfully' });
-  } catch (error) {
-    console.error('Ошибка при удалении статьи:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
-
-// Получение данных по источникам
-app.get('/analytics', async (req, res) => {
-  try {
-    const articles = await Article.findAll();
-    const analytics = articles.reduce((acc, article) => {
-      if (!acc[article.source]) {
-        acc[article.source] = { count: 0, updated: 0, notUpdated: 0 };
-      }
-      acc[article.source].count += 1;
-      if (article.update_date) {
-        acc[article.source].updated += 1;
-      } else {
-        acc[article.source].notUpdated += 1;
-      }
-      return acc;
-    }, {});
-    res.json(analytics);
-  } catch (error) {
-    console.error('Ошибка при получении аналитики:', error);
-    res.status(500).send('Ошибка сервера');
-  }
-});
 
 // Запуск сервера
 app.listen(PORT, async () => {
