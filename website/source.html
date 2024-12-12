@@ -22,106 +22,19 @@
         <canvas id="updateDistribution" style="max-height: 300px;"></canvas>
       </div>
     </div>
+    <!-- Фильтры -->
+    <div class="mt-4">
+      <button id="sort-asc" class="btn btn-primary">Sort A-Z</button>
+      <button id="sort-desc" class="btn btn-secondary">Sort Z-A</button>
+      <input id="search-keyword" type="text" class="form-control mt-2" placeholder="Search articles by keyword">
+    </div>
     <!-- Статьи -->
     <h2 class="mt-5">Articles</h2>
     <ul id="articles-list" class="list-group mt-3"></ul>
   </div>
 
   <script>
-    // // Получаем параметр source из URL
-    // const params = new URLSearchParams(window.location.search);
-    // const source = params.get('source') || 'Unknown';
-
-    // // Устанавливаем название источника
-    // document.getElementById('sourceName').textContent = `Source: ${source}`;
-
-    // // Функция для загрузки данных по источнику
-    // async function fetchSourceData() {
-    //   try {
-    //     // Запрос на сервер для получения всех статей
-    //     const response = await fetch('http://localhost:3000/articles');
-    //     const articles = await response.json();
-
-    //     // Фильтруем статьи по источнику
-    //     const filteredArticles = articles.filter(article => article.source === source);
-
-    //     // Список статей
-    //     const articlesList = document.getElementById('articlesList');
-    //     filteredArticles.forEach(article => {
-    //       const listItem = document.createElement('li');
-    //       listItem.className = 'list-group-item';
-    //       listItem.innerHTML = `<a href="article.html?id=${article.id}">${article.header}</a>`;
-    //       articlesList.appendChild(listItem);
-    //     });
-
-    //     // Динамическая аналитика
-    //     generateCharts(filteredArticles);
-    //   } catch (error) {
-    //     console.error('Ошибка при загрузке данных:', error);
-    //   }
-    // }
-
-    // // Функция для генерации графиков
-    // function generateCharts(articles) {
-    //   // Данные для графиков
-    //   const publicationDates = articles.map(article => new Date(article.publish_date).toLocaleDateString());
-    //   const tags = articles.flatMap(article => article.category.split(', '));
-    //   const updatedCounts = [
-    //     articles.filter(article => article.update_date).length,
-    //     articles.filter(article => !article.update_date).length
-    //   ];
-
-    //   // График публикаций
-    //   const ctxTime = document.getElementById('timeChart').getContext('2d');
-    //   new Chart(ctxTime, {
-    //     type: 'line',
-    //     data: {
-    //       labels: [...new Set(publicationDates)], // Уникальные даты
-    //       datasets: [{
-    //         label: 'Number of Articles',
-    //         data: publicationDates.reduce((acc, date) => {
-    //           acc[date] = (acc[date] || 0) + 1;
-    //           return acc;
-    //         }, {}),
-    //         borderColor: 'blue',
-    //         fill: false
-    //       }]
-    //     }
-    //   });
-
-    //   // Круговая диаграмма по тегам
-    //   const ctxTags = document.getElementById('tagsChart').getContext('2d');
-    //   const tagCounts = tags.reduce((acc, tag) => {
-    //     acc[tag] = (acc[tag] || 0) + 1;
-    //     return acc;
-    //   }, {});
-    //   new Chart(ctxTags, {
-    //     type: 'pie',
-    //     data: {
-    //       labels: Object.keys(tagCounts),
-    //       datasets: [{
-    //         data: Object.values(tagCounts),
-    //         backgroundColor: ['red', 'green', 'blue', 'orange', 'purple']
-    //       }]
-    //     }
-    //   });
-
-    //   // Круговая диаграмма: Updated vs Not Updated
-    //   const ctxUpdates = document.getElementById('updatesChart').getContext('2d');
-    //   new Chart(ctxUpdates, {
-    //     type: 'doughnut',
-    //     data: {
-    //       labels: ['Updated', 'Not Updated'],
-    //       datasets: [{
-    //         data: updatedCounts,
-    //         backgroundColor: ['green', 'red']
-    //       }]
-    //     }
-    //   });
-    // }
-
-    // // Запускаем загрузку данных
-    // fetchSourceData();
+    let articles = [];
 
     async function loadSourceAnalytics() {
       try {
@@ -190,18 +103,49 @@
         });
 
         // Список статей
-        const articlesList = document.getElementById('articles-list');
-        analytics.articles.forEach(article => {
-          const listItem = document.createElement('li');
-          listItem.className = 'list-group-item';
-          listItem.innerHTML = `<a href="article.html?id=${article.id}">${article.header}</a>`;
-          articlesList.appendChild(listItem);
-        });
+        // const articlesList = document.getElementById('articles-list');
+        // analytics.articles.forEach(article => {
+        //   const listItem = document.createElement('li');
+        //   listItem.className = 'list-group-item';
+        //   listItem.innerHTML = `<a href="article.html?id=${article.id}">${article.header}</a>`;
+        //   articlesList.appendChild(listItem);
+        // });
+        articles = analytics.articles; // Сохранение статей для фильтрации
+        displayArticles(articles);
       } catch (error) {
         console.error('Ошибка при загрузке аналитики:', error);
         document.body.innerHTML = '<div class="container mt-5"><h1>Error loading analytics</h1></div>';
       }
     }
+
+    function displayArticles(filteredArticles) {
+      const articlesList = document.getElementById('articles-list');
+      articlesList.innerHTML = ''; // Очищаем список
+      filteredArticles.forEach(article => {
+        const listItem = document.createElement('li');
+        listItem.className = 'list-group-item';
+        listItem.innerHTML = `<a href="article.html?id=${article.id}">${article.header}</a>`;
+        articlesList.appendChild(listItem);
+      });
+    }
+
+    document.getElementById('sort-asc').addEventListener('click', () => {
+      const sortedArticles = [...articles].sort((a, b) => a.header.localeCompare(b.header));
+      displayArticles(sortedArticles);
+    });
+
+    document.getElementById('sort-desc').addEventListener('click', () => {
+      const sortedArticles = [...articles].sort((a, b) => b.header.localeCompare(a.header));
+      displayArticles(sortedArticles);
+    });
+
+    document.getElementById('search-keyword').addEventListener('input', (event) => {
+      const keyword = event.target.value.toLowerCase();
+      const filteredArticles = articles.filter(article =>
+        article.header.toLowerCase().includes(keyword)
+      );
+      displayArticles(filteredArticles);
+    });
 
     loadSourceAnalytics();
   </script>
