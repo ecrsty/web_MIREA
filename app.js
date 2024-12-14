@@ -2,7 +2,7 @@ const sequelize = require('./database');
 const {getSources} = require('./link_scraper');
 const {scrapeAllWebsites} = require('./NewsScrapers');
 
-
+// Соединение с БД, синхронизация, запуск сбора данных
 (async () => {
   try {
     await sequelize.authenticate();

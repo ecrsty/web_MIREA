@@ -54,7 +54,7 @@
 
         document.getElementById('source-title').textContent = `Analytics for ${source}`;
 
-        // Диаграмма: Articles by Time
+        // Диаграмма распределения статей по времени
         new Chart(document.getElementById('articlesByTime').getContext('2d'), {
           type: 'bar',
           data: {
@@ -68,7 +68,7 @@
           options: { responsive: true, maintainAspectRatio: false }
         });
 
-        // Диаграмма: Tags Distribution
+        // Диаграмма, отображающая топ тегов категорий
         const sortedTags = analytics.tagsDistribution.sort((a, b) => b.count - a.count);
         const topTags = sortedTags.slice(0, 7); // Топ-7 тегов
         const otherCount = sortedTags.slice(7).reduce((sum, tag) => sum + tag.count, 0);
@@ -89,7 +89,7 @@
           options: { responsive: true, maintainAspectRatio: false }
         });
 
-        // Диаграмма: Update Distribution
+        // Диаграмма соотношения обновленных/необновленных статей
         new Chart(document.getElementById('updateDistribution').getContext('2d'), {
           type: 'doughnut',
           data: {
@@ -101,15 +101,7 @@
           },
           options: { responsive: true, maintainAspectRatio: false }
         });
-
-        // Список статей
-        // const articlesList = document.getElementById('articles-list');
-        // analytics.articles.forEach(article => {
-        //   const listItem = document.createElement('li');
-        //   listItem.className = 'list-group-item';
-        //   listItem.innerHTML = `<a href="article.html?id=${article.id}">${article.header}</a>`;
-        //   articlesList.appendChild(listItem);
-        // });
+        
         articles = analytics.articles; // Сохранение статей для фильтрации
         displayArticles(articles);
       } catch (error) {

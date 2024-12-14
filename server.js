@@ -2,7 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const sequelize = require('./database');
-const Article = require('./models/article'); // Модель статьи
+const Article = require('./models/article'); 
 const path = require('path');
 const os = require('os');
 const { format } = require('date-fns');
@@ -66,7 +66,7 @@ app.get('/analytics', async (req, res) => {
   }
 });
 
-// Маршрут для аналитики по источнику
+// Аналитика по источнику
 app.get('/analytics/:source', async (req, res) => {
   try {
     const source = req.params.source;
@@ -113,7 +113,7 @@ app.get('/analytics/:source', async (req, res) => {
     const tagsArray = Object.entries(tagsDistribution).map(([tag, count]) => ({ tag, count }));
     tagsArray.sort((a, b) => b.count - a.count);
 
-    // Подготовка данных для ответа
+    // Данные для ответа
     const analytics = {
       articlesByTime: Object.entries(articlesByTime).map(([time, count]) => ({ time, count })),
       tagsDistribution: tagsArray,
@@ -192,7 +192,7 @@ app.put('/articles/:id', async (req, res) => {
       updatedData.update_date = format(new Date(), "yyyy-MM-dd HH:mm:ss");
     }
 
-    // Проверка, что переданная дата корректная
+    // Проверка корректности переданной пользователем даты
     const updateDate = new Date(updatedData.update_date);
     if (isNaN(updateDate.getTime())) {
       return res.status(400).json({ error: 'Invalid update date format' });

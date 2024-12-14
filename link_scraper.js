@@ -1,6 +1,5 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const {scrapeAllWebsites} = require('./NewsScrapers')
 
 async function getCNNLinks(url) {
     try {
@@ -39,7 +38,6 @@ async function getEuroLinks(url) {
         const html = response.data;
         const $ = cheerio.load(html);
 
-        // Блок, содержащий ссылки на статьи
         const links = [];
 
         // Извлекаем ссылки из блока #enw-main-content
@@ -57,7 +55,6 @@ async function getEuroLinks(url) {
             }
         });
 
-        // Убираем дубликаты
         const uniqueLinks = [...new Set(links)];
 
         return uniqueLinks;
@@ -69,7 +66,6 @@ async function getEuroLinks(url) {
 
 async function getFoxLinks(url) {
     try {
-        // Загружаем HTML страницы
         const response = await axios.get(url);
         const html = response.data;
         const $ = cheerio.load(html);
@@ -107,7 +103,6 @@ async function getFoxLinks(url) {
             });
         });
 
-        // Убираем дубликаты
         links = [...new Set(links)];
 
         return links;
@@ -119,33 +114,26 @@ async function getFoxLinks(url) {
 
 async function getMetroLinks(url) {
     try {
-        // Загружаем HTML страницы
         const response = await axios.get(url);
         const html = response.data;
         const $ = cheerio.load(html);
 
-        // Выбираем блок с новостями
         const newsBlock = $('div.pageBackground');
 
-        // Извлекаем все ссылки внутри этого блока
         const links = [];
         newsBlock.find('a').each((index, element) => {
             const link = $(element).attr('href');
             if (link) {
-                // Приводим относительные ссылки к абсолютному виду, если нужно
                 const absoluteLink = link.startsWith('http') ? link : `https://metro.co.uk/${link}`;
 
-                // Проверяем, чтобы ссылка содержала как минимум два сегмента после домена
                 const pathSegments = new URL(absoluteLink).pathname.split('/').filter(Boolean);
 
-                // Условие: Ссылка на статью должна иметь больше одного сегмента в пути
                 if (pathSegments.length > 3 && link.startsWith('https://metro.co.uk/')) {
                     links.push(absoluteLink);
                 }
             }
         });
 
-        // Убираем дубликаты
         const uniqueLinks = [...new Set(links)];
 
         return uniqueLinks;
@@ -158,33 +146,26 @@ async function getMetroLinks(url) {
 
 async function getSunLinks(url) {
     try {
-        // Загружаем HTML страницы
         const response = await axios.get(url);
         const html = response.data;
         const $ = cheerio.load(html);
 
-        // Выбираем блок с новостями
         const newsBlock = $('div[class*="sun-customiser"]');
 
-        // Извлекаем все ссылки внутри этого блока
         const links = [];
         newsBlock.find('a').each((index, element) => {
             const link = $(element).attr('href');
             if (link) {
-                // Приводим относительные ссылки к абсолютному виду, если нужно
                 const absoluteLink = link.startsWith('http') ? link : `https://www.thesun.co.uk/${link}`;
 
-                // Проверяем, чтобы ссылка содержала как минимум два сегмента после домена
                 const pathSegments = new URL(absoluteLink).pathname.split('/').filter(Boolean);
 
-                // Условие: Ссылка на статью должна иметь больше одного сегмента в пути
                 if (pathSegments.length > 2 && link.startsWith('https://www.thesun.co.uk/')) {
                     links.push(absoluteLink);
                 }
             }
         });
 
-        // Убираем дубликаты
         const uniqueLinks = [...new Set(links)];
 
         return uniqueLinks;
@@ -220,7 +201,7 @@ async function getSources() {
     }
 }
 
-// Вызов функции для передачи в scrapeAllWebsites
+// Вызов функции для передачи в scrapeAllWebsites (запуск процесса сбора данных)
 // getSources().then(sources => {
 //     scrapeAllWebsites(sources, 50); // Запуск scrapeAllWebsites с собранными ссылками
 // });

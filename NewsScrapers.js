@@ -11,58 +11,6 @@ const ScrapingSession = require('./models/scrapingSession');
 // Функция для задержки между запросами
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-const urls = [
-    "https://edition.cnn.com/2024/09/23/tech/social-media-ai-data-opt-out",
-    "https://www.euronews.com/business/2024/09/06/uk-house-prices-hit-two-year-high-after-positive-summer-for-market",
-    "https://www.foxnews.com/lifestyle/creative-couples-halloween-costumes",
-    "https://metro.co.uk/2024/09/08/danger-life-warning-place-100mm-rain-forecast-uk-21565559/",
-    "https://www.thesun.co.uk/news/30829932/teenage-girl-killed-motorway-crash-m65-burnley/"
-]
-
-const sources = {
-    'cnn' : [
-        "https://edition.cnn.com/2024/09/05/europe/munich-police-shoot-armed-suspect-intl",
-        "https://edition.cnn.com/style/cairo-forbes-international-tower-hydrogen-nac-spc/",
-        "https://edition.cnn.com/2024/09/27/tech/proto-hologram-boxes-3d-video-spc/",
-        "https://edition.cnn.com/2024/09/23/tech/new-emoji-2024",
-        "https://edition.cnn.com/2024/09/23/tech/social-media-ai-data-opt-out",
-        "https://edition.cnn.com/2024/09/23/tech/voiceitt-voice-recognition-speech-impairments-spc/",
-        "https://edition.cnn.com/2024/08/29/style/south-korea-k-pop-idols-tv-show-intl-hnk/"
-    ],
-    'euronews' : [
-         "https://www.euronews.com/next/2024/10/30/the-atomium-a-gateway-to-understanding-nuclear-energy-euronews-tech-talks",
-         "https://www.euronews.com/business/2024/11/02/what-effect-could-the-us-election-have-on-stocks-and-bonds",
-         "https://www.euronews.com/2024/11/01/trumps-comments-about-liz-cheney-must-be-disqualifying-harris-says",
-         "https://www.euronews.com/travel/2024/11/02/soaring-rent-drunken-behaviour-and-peeing-in-public-split-locals-have-had-enough-of-party-",
-         "https://www.euronews.com/culture/2024/10/31/meet-dj-ag-the-tiktok-dj-turning-londons-streets-into-a-viral-stage-for-up-and-coming-arti",
-        ],
-    'foxnews' : [
-        "https://www.foxnews.com/world/ancient-painting-revealed-egypt-beneath-layers-bird-poop",
-        "https://www.foxnews.com/lifestyle/creative-couples-halloween-costumes",
-        "https://www.foxnews.com/world/archaeologists-discover-5000-year-old-ancient-community-morocco",
-        "https://www.foxnews.com/world/thailand-school-bus-bursts-flames-outside-bangkok-feared-dead-officials-say",
-        "https://www.foxnews.com/world/flooding-landslides-kill-200-nepal",
-        "https://www.foxnews.com/lifestyle/light-options-to-brighten-your-home",
-        "https://www.foxnews.com/lifestyle/kitchen-appliances-amazon-prime-big-deal-days"
-    ],
-    'metro' : [
-        "https://metro.co.uk/2024/11/02/troy-deeney-names-most-disrespected-player-history-english-football-21907155/",
-        "https://metro.co.uk/2024/11/01/eastenders-kat-slater-isnt-too-fierce-a-victim-abuse-21900254/",
-        "https://metro.co.uk/2024/11/03/80s-pop-legend-unrecognisable-38-years-bands-biggest-hit-2-21901432/",
-        "https://metro.co.uk/2024/11/01/coronation-street-legend-quits-job-sad-death-loved-ones-reel-21902780/",
-        
-    ],
-    'thesun' : [
-        "https://www.thesun.co.uk/news/30829932/teenage-girl-killed-motorway-crash-m65-burnley/",
-        "https://www.thesun.co.uk/news/30815467/inside-evil-corp-hacking-family-russia-maksim/",
-        "https://www.thesun.co.uk/news/30842703/westminster-academy-acid-attack-arrest/",
-        "https://www.thesun.co.uk/news/30831180/parents-kids-career-creative-industry/",
-        "https://www.thesun.co.uk/sport/18922011/win-watch-7dp/",
-        "https://www.thesun.co.uk/health/30791629/smoking-rates-record-low-uk-vaping-rise-millions/",
-        "https://www.thesun.co.uk/tvandshowbiz/30832143/paul-ogrady-countryside-mansion-sale-neighbours-row/"
-    ]
-}
-
 function normalizeDate(stringdate, oldDateFormat, newDateFormat="yyyy-MM-dd HH:mm:ss") {
     let d = parse(stringdate, oldDateFormat, new Date());
     let newd = format(d, newDateFormat);
@@ -103,7 +51,6 @@ async function scrapeCNN(url) {
 }
 
 async function scrapeEuronews(url) {
-    // Отправляем запрос с корректным User-Agent
     const response = await axios.get(url, {
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36'
@@ -254,7 +201,7 @@ async function writeToCSV(data, save_path) {
             append: fileExists // true для добавления данных по мере их поступления, false для записи с заголовками
         });
 
-        await csvWriter.writeRecords([data]); // Пишем данные
+        await csvWriter.writeRecords([data]); 
         console.log("Данные успешно записаны в CSV.");
 
     } catch (error) {
@@ -262,7 +209,7 @@ async function writeToCSV(data, save_path) {
     }
 }
 
-// добавляет данные о начале и конце парсинга
+// Добавление данных о начале и конце парсинга
 async function startScraping() {
     const session = await ScrapingSession.create({
         start_time: new Date()
@@ -309,7 +256,6 @@ async function scrapeAllWebsites(sources, n=sources.length) {
             await writeToCSV(data, save_path);
             if (data) {
                 data.source = site;
-                // await saveArticle(data);
                 const isSaved = await saveArticle(data, sessionId);
                 if (isSaved) {
                     totalArticles++;
